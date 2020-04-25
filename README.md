@@ -1,11 +1,15 @@
 # AHK-Vi-ArrowKeys
-An AutoHotkey script that works like Karabiner for Mac's old VI mode. Press S+D, and use the right hand home row to emulate arrow keys.
+An AutoHotkey script that works like Karabiner for Mac's VI mode (but for Windows, now). Press and hold "D", and use the right hand home row to emulate arrow keys, based on the VI mapping.
 
-Note that because "ds" is present in many English words (ex: cards, words, etc.), but "sd" is present in nearly none, the S key must be pressed slightly before the D key.
+In a previous version of Karabiner for Mac, this mode was triggered by pressing S+D. However, now it is triggered by only pressing D (as per the most recent version of the Mac software).
 
 ## List of Remappings
-While S+D pressed (S pressed before D):
+While holding D:
 * H -> Left Arrow
 * J -> Down Arrow
 * K -> Up Arrow
 * L -> Right Arrow
+
+If you don't press any of those before releasing the D key, a "d" is typed.
+
+Modifier keys (specifically, shift) are ignored. This tool can be used to move around, or select text.

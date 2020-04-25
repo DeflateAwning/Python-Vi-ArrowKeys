@@ -31,11 +31,11 @@ timeThreshold = 500
 
 ; If only one of the trigger keys is pressed
 #If !(GetKeyState("s", "P") && GetKeyState("d", "P"))
-	s::
-		Sleep, %timeThreshold%
-		If !GetKeyState("d", "P")
-			Send s
-Return
+	; s::
+	; 	Sleep, %timeThreshold%
+	; 	If !GetKeyState("d", "P")
+	; 		Send s
+	; 	Return
 
 ; d::
 ; 	Sleep, %timeThreshold%
@@ -47,13 +47,27 @@ Return
 
 
 
-#If GetKeyState("s", "P") && GetKeyState("d", "P")
+#If GetKeyState("d", "P") ; && GetKeyState("s", "P")
 	; Don't type these keys when both of them are pressed (simple)
-	s::
-		Sleep, %timeThreshold%
-		If !GetKeyState("d", "P")
-			Send s
-	d:: return
+	; s::
+	; 	Sleep, %timeThreshold%
+	; 	If !GetKeyState("d", "P")
+	; 		Send s
+	
+
+	; $d:: ; dollar sign means it can't be triggered by itself
+	; 	SoundBeep
+	; 	If A_PriorHotkey = "d"
+	; 		; Another key was pressed
+	; 		Send d
+	; 	Return
+
+	d::
+		KeyWait d ; wait for d key to be released
+		; msgbox Prior:  %A_PriorHotkey% , This: %A_ThisHotkey%
+		If (A_ThisHotkey = "d")
+			Send d
+		Return
 
 	h::Left
 	j::Down
