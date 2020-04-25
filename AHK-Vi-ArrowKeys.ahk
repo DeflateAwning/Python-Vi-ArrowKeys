@@ -31,39 +31,34 @@ timeThreshold = 500
 
 ; If only one of the trigger keys is pressed
 #If !(GetKeyState("s", "P") && GetKeyState("d", "P"))
-s::
-	Sleep, %timeThreshold%
-	If !GetKeyState("d", "P")
-		Send s
+	s::
+		Sleep, %timeThreshold%
+		If !GetKeyState("d", "P")
+			Send s
 Return
 
-d::
-	Sleep, %timeThreshold%
-	If !GetKeyState("s", "P")
-		Send d
-Return
+; d::
+; 	Sleep, %timeThreshold%
+; 	If !GetKeyState("s", "P")
+; 		Send d
+; Return
 
-#If
+#If ; close
 
 
 
 #If GetKeyState("s", "P") && GetKeyState("d", "P")
-	s:: return
+	; Don't type these keys when both of them are pressed (simple)
+	s::
+		Sleep, %timeThreshold%
+		If !GetKeyState("d", "P")
+			Send s
 	d:: return
 
-	h::MsgBox "S+D+H Press"
-
-; If A_TimeSincePriorHotkey>timeThreshold
-; 	Send %A_ThisHotkey%
-
-; Else
-; 	; Only one pressed
-; 	msgbox "Pressed: " . A_ThisHotkey
-; 	Send %A_ThisHotkey%
-; Return
-
-
-
+	h::Left
+	j::Down
+	k::Up
+	l::Right
 
 #If ; close
 
