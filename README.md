@@ -12,4 +12,4 @@ While holding D:
 
 If you don't press any of those before releasing the D key, a "d" is typed.
 
-Modifier keys (specifically, shift) are ignored. This tool can be used to move around, or select text.
+Modifier keys (specifically, shift) are applied as pressed. This tool can be used to move around, or select text.

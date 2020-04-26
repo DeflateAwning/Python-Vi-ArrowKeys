@@ -62,17 +62,52 @@ timeThreshold = 500
 	; 		Send d
 	; 	Return
 
+	; D Press has started
+	+d::
 	d::
 		KeyWait d ; wait for d key to be released
-		; msgbox Prior:  %A_PriorHotkey% , This: %A_ThisHotkey%
-		If (A_ThisHotkey = "d")
-			Send d
+
+		;msgbox Start PriorHotkey:  %A_PriorHotkey% , ThisHotkey: %A_ThisHotkey% , PriorKey: %A_PriorKey%
+
+		; Ensure that no VI keys were used
+		If (A_PriorKey != "h" && A_PriorKey != "j" && A_PriorKey != "k" && A_PriorKey != "l") ; user didn't type a VI key
+				&& (A_ThisHotkey = "d" || A_ThisHotkey = "+d") { ; verify user didn't type a VI key
+
+			If (A_PriorKey = "d") { ; user only typed a "d"
+				;msgbox Version A: PriorHotkey:  %A_PriorHotkey% , ThisHotkey: %A_ThisHotkey% , PriorKey: %A_PriorKey%
+			 	if (A_ThisHotkey = "d") {
+			 		Send d
+			 	}
+			 	if (A_ThisHotkey = "+d") {
+			 		Send D
+			 	}
+			}
+			Else {
+				; User typed another key before releasing d...erase that key, make the d, then type the other key (effectively switch their order)
+				;msgbox Version B: PriorHotkey:  %A_PriorHotkey% , ThisHotkey: %A_ThisHotkey% , PriorKey: %A_PriorKey%
+				Sleep 50 ; delay briefly while A_PriorKey updates
+
+				if (A_ThisHotkey = "d") {
+			 		Send {BackSpace}d{%A_PriorKey%}
+			 	}
+			 	if (A_ThisHotkey = "+d") {
+			 		Send {BackSpace}D{%A_PriorKey%}
+			 	}
+				
+
+			}
+
+		}
 		Return
 
+
+	; Remap the VI Keys
 	h::Left
 	j::Down
 	k::Up
 	l::Right
+
+	*:: msgbox Any key.
 
 #If ; close
 
