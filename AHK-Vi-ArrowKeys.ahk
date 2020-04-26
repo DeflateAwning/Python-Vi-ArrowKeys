@@ -13,6 +13,7 @@
 ; Set the Threshold for S+D to be considered "simultaneous" (setting this too high makes words like "words") glitch when typed too fast
 timeThreshold = 500
 
+;#MaxThreads 1
 
 #If GetKeyState("d", "P")
 	
@@ -30,24 +31,22 @@ timeThreshold = 500
 			If (A_PriorKey = "d") { ; user only typed a "d"
 				;msgbox Version A: PriorHotkey:  %A_PriorHotkey% , ThisHotkey: %A_ThisHotkey% , PriorKey: %A_PriorKey%
 			 	if (A_ThisHotkey = "d") {
-			 		Send d
+			 		SendInput d
 			 	}
 			 	if (A_ThisHotkey = "+d") {
-			 		Send D
+			 		SendInput D
 			 	}
 			}
 			Else {
 				; User typed another key before releasing d...erase that key, make the d, then type the other key (effectively switch their order)
 				;msgbox Version B: PriorHotkey:  %A_PriorHotkey% , ThisHotkey: %A_ThisHotkey% , PriorKey: %A_PriorKey%
-				Sleep 50 ; delay briefly while A_PriorKey updates
-
+				
 				if (A_ThisHotkey = "d") {
-			 		Send {BackSpace}d{%A_PriorKey%}
+			 		SendInput {BackSpace}d{%A_PriorKey%}
 			 	}
 			 	if (A_ThisHotkey = "+d") {
-			 		Send {BackSpace}D{%A_PriorKey%}
+			 		SendInput {BackSpace}D{%A_PriorKey%}
 			 	}
-				
 
 			}
 
