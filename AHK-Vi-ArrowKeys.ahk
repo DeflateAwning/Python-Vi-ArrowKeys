@@ -14,54 +14,8 @@
 timeThreshold = 500
 
 
-; s::
-; d::
-
-; If (A_PriorHotkey="s" || A_PriorHotkey="d") && A_TimeSincePriorHotkey<500 && A_PriorHotkey<>A_ThisHotKey
+#If GetKeyState("d", "P")
 	
-; 	MsgBox You pressed "s+d"
-
-; Return
-
-;; Triggers when either s or d is pressed
-; s::
-; d::
-
-;SoundBeep
-
-; If only one of the trigger keys is pressed
-#If !(GetKeyState("s", "P") && GetKeyState("d", "P"))
-	; s::
-	; 	Sleep, %timeThreshold%
-	; 	If !GetKeyState("d", "P")
-	; 		Send s
-	; 	Return
-
-; d::
-; 	Sleep, %timeThreshold%
-; 	If !GetKeyState("s", "P")
-; 		Send d
-; Return
-
-#If ; close
-
-
-
-#If GetKeyState("d", "P") ; && GetKeyState("s", "P")
-	; Don't type these keys when both of them are pressed (simple)
-	; s::
-	; 	Sleep, %timeThreshold%
-	; 	If !GetKeyState("d", "P")
-	; 		Send s
-	
-
-	; $d:: ; dollar sign means it can't be triggered by itself
-	; 	SoundBeep
-	; 	If A_PriorHotkey = "d"
-	; 		; Another key was pressed
-	; 		Send d
-	; 	Return
-
 	; D Press has started
 	+d::
 	d::
@@ -107,10 +61,7 @@ timeThreshold = 500
 	k::Up
 	l::Right
 
-	*:: msgbox Any key.
-
 #If ; close
-
 
 ; Assign a Hotkey to Quit the Script (for development purposes)
 End::
