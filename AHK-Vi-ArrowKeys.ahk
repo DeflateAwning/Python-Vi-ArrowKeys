@@ -33,7 +33,7 @@ $d::
 		; Starts running as soon as d is pressed down
 		;MakeTooltip("d hotkey occured inside #IfDPressed")
 		;KeyWait d ; wait for d to be released
-		Input, InputTextVar, L1 T0.2 I0
+		Input, InputTextVar, L1 T0.3 I0
 
 		if (ErrorLevel = "Timeout") {
 			ErrorLevel = 0 ; reset the error level for next time
@@ -48,12 +48,16 @@ $d::
 		else {
 			; Key received in the fast input, send that key after a d
 			MakeTooltip("No timeout, using fast received character.")
-			SendInput %A_ThisHotkey%%InputTextVar% ; send d/D then the fast received character
+
+			if (A_PriorKey = "d") {
+				SendInput %A_ThisHotkey%%A_ThisHotkey%%InputTextVar%  ; two d/D's were typed very fast back to back
+			}
+			Else {
+				SendInput %A_ThisHotkey%%InputTextVar% ; send d/D then the fast received character
+			}
 		}
 
-		; if (A_ThisHotkey = "d" || A_ThisHotkey = "+d") {
-		; 	SendInput %A_ThisHotkey% ; send either uppercase or lowercase d
-		; }
+		MakeTooltip("Presses -> PriorHotkey:  " A_PriorHotkey ", ThisHotkey: " A_ThisHotkey " , PriorKey: " A_PriorKey ", Input: " InputTextVar)
 		Return
 
 	; Remap the VI Keys
