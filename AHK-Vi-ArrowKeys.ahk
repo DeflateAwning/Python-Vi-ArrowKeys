@@ -13,62 +13,48 @@
 #If (GetKeyState("h", "P") or GetKeyState("j", "P") or GetKeyState("k", "P") or GetKeyState("l", "P"))
 	; If any of the VI keys are down
 	d::
+		MakeTooltip("'world' fix activated.")
 		Send d
 		Return
 	+d::
+		MakeTooltip("'world' fix activated.")
 		Send D
 		Return
 #If ; close
 
-
+$d::
+	Send .
+	Return
 
 #If GetKeyState("d", "P")
-	
-	; ; D Press has started
-	; +d::
-	; d::
-	; 	KeyWait d ; wait for d key to be released
-
-	; 	;msgbox Start PriorHotkey:  %A_PriorHotkey% , ThisHotkey: %A_ThisHotkey% , PriorKey: %A_PriorKey%
-
-	; 	; Ensure that no VI keys were used
-	; 	If (A_PriorKey != "h" && A_PriorKey != "j" && A_PriorKey != "k" && A_PriorKey != "l") ; user didn't type a VI key
-	; 			&& (A_ThisHotkey = "d" || A_ThisHotkey = "+d") { ; verify user didn't type a VI key
-
-	; 		If (A_PriorKey = "d") { ; user only typed a "d"
-	; 			;msgbox Version A: PriorHotkey:  %A_PriorHotkey% , ThisHotkey: %A_ThisHotkey% , PriorKey: %A_PriorKey%
-	; 		 	if (A_ThisHotkey = "d") {
-	; 		 		SendInput d
-	; 		 	}
-	; 		 	if (A_ThisHotkey = "+d") {
-	; 		 		SendInput D
-	; 		 	}
-	; 		}
-	; 		Else {
-	; 			; User typed another key before releasing d...erase that key, make the d, then type the other key (effectively switch their order)
-	; 			;msgbox Version B: PriorHotkey:  %A_PriorHotkey% , ThisHotkey: %A_ThisHotkey% , PriorKey: %A_PriorKey%
-				
-	; 			if (A_ThisHotkey = "d") {
-	; 		 		SendInput {BackSpace}d{%A_PriorKey%}
-	; 		 	}
-	; 		 	if (A_ThisHotkey = "+d") {
-	; 		 		SendInput {BackSpace}D{%A_PriorKey%}
-	; 		 	}
-
-	; 		}
-
-	; 	}
-	; 	Return
 
 	+d::
 	d::
-		KeyWait d ; wait for d to be released
-		if (A_ThisHotkey = "d" || A_ThisHotkey = "+d") {
-			SendInput %A_ThisHotkey% ; send either uppercase or lowercase d
+		; Starts running as soon as d is pressed down
+		;MakeTooltip("d hotkey occured inside #IfDPressed")
+		;KeyWait d ; wait for d to be released
+		Input, InputTextVar, L1 T0.2 I0
+
+		if (ErrorLevel = "Timeout") {
+			ErrorLevel = 0 ; reset the error level for next time
+			MakeTooltip("Timeout occured, no fast character received, wait for normal release.")
+			KeyWait d
+			if ((A_ThisHotkey = "d" or A_ThisHotkey = "+d") and A_PriorKey != "Backspace") { ;  no vi key was pressed, and the user didn't try to delete the 'd'
+				SendInput %A_ThisHotkey% ; send either uppercase or lowercase d
+			}
+			;Else
+			;	MakeTooltip("Char was a vi key or backspace." isCharacterVIKey(A_ThisHotkey))
 		}
+		else {
+			; Key received in the fast input, send that key after a d
+			MakeTooltip("No timeout, using fast received character.")
+			SendInput %A_ThisHotkey%%InputTextVar% ; send d/D then the fast received character
+		}
+
+		; if (A_ThisHotkey = "d" || A_ThisHotkey = "+d") {
+		; 	SendInput %A_ThisHotkey% ; send either uppercase or lowercase d
+		; }
 		Return
-
-
 
 	; Remap the VI Keys
 	h::Left
@@ -77,6 +63,7 @@
 	l::Right
 
 	; Remap Normal Keys
+	/*
 	+a::
 	a::
 	b::
@@ -125,6 +112,9 @@
 	Space::
 	+Space::
 		;msgbox Version A: PriorHotkey:  %A_PriorHotkey% , ThisHotkey: %A_ThisHotkey% , PriorKey: %A_PriorKey%
+		ToolTip, inserting d then character, 0, 0
+		SetTimer, RemoveToolTip, 1000
+
 		If (A_ThisHotkey = "Space" or A_ThisHotkey = "+Space") {
 			SendInput %A_PriorHotkey%{Space} ; Send d/D, then send the space character typed
 		}
@@ -133,9 +123,26 @@
 		}
 		Return
 
+	*/
+
 #If ; close
 
 ; Assign a Hotkey to Quit the Script (for development purposes)
 End::
 	MsgBox Quitting Script
 	ExitApp
+
+RemoveToolTip:
+	ToolTip
+	Return
+
+MakeTooltip(message) {
+	if 1 { ; change to 0 to disable tooltips
+		ToolTip, %message%, 0, 0
+		SetTimer, RemoveToolTip, 5000
+	}
+}
+
+isCharacterVIKey(char) {
+	return (char = "h" and char = "j" and char = "k" and char = "l") ; single equals is case insensitive
+}
