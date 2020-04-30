@@ -1,6 +1,8 @@
 # Python-Vi-ArrowKeys
 A Python script that works like Karabiner for Mac's VI mode (but for Windows, now). Press and hold "D", and use the right hand home row to emulate arrow keys, based on the VI mapping.
 
+This software creates a System Tray icon, and can be enabled/disabled from that icon.
+
 This project was originally attempted in AHK (see the `ahk-attempt` branch), but switched to Python for more flexibility. While it should be cross-platform, it has only beed tested on Windows.
 
 In a previous version of Karabiner for Mac, this mode was triggered by pressing S+D. However, now it is triggered by only pressing D (as per the most recent version of the Mac software).
@@ -29,6 +31,8 @@ If you notice a bug, please open an issue and/or make a pull request.
 	* b -> go to start of word
 	* w -> go to end of word
 	* 0 -> go to start of line
+* Add a "disable for x amount of time" submenu in system tray icon.
+* Add an "Features Enabled" submenu in the system tray icon.
 
 There are even more VI mappings that can be added after. We'll start with these, though.
 

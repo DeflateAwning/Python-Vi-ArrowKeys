@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Project Homepage: https://github.com/ThePiGuy/Python-Vi-ArrowKeys
+
 import keyboard # install with "pip install keyboard"
 import pystray as tray # install with "pip install pystray"
 from PIL import Image # install with "pip install wheel pillow"
@@ -12,11 +14,14 @@ gstate = { # global state of the system
 	"lastInfoCount": 0,
 	"viTriggeredYet": False, # whether VI mode has been triggered while d has been pressed (decides where or not to type a 'd' on 'd UP')
 	"dSentYet": False, # whether the 'd' character has been send yet (gets reset on 'd DOWN', and sent when 'd' is typed from either 'UP', 'cards', or 'world' section
+
 	"icon": None, # system tray icon
+	"enabled": True, # system tray enabled
+
 }
 
 config = {
-	"printDebug": True,
+	"printDebug": False,
 	"enableSysTray": True,
 
 	"maps": { # VI Mappings
@@ -38,7 +43,7 @@ def hookCallback(event):
 	"""
 	Called for every key down/up event. This is where the remapping magic happens.
 	Everything after this method is just pretty system tray stuff.
-	
+
 	@param event a keyboard.KeyboardEvent object
 
 	Samples of event parameter (with event.to_json()):
@@ -145,10 +150,10 @@ def stopHooks():
 	"""
 	Removes keyboard hooks, stops listening. Pauses the program.
 	"""
-	keyboard.unhook_all_hotkeys()
+	keyboard.unhook_all() # should do it, but it doesn't
 
 	if config["printDebug"]:
-		print("Stopped all hooks/paused the program.")
+		print("\nStopped all hooks/paused the program.")
 
 def traySetup(icon):
 	"""
@@ -158,6 +163,13 @@ def traySetup(icon):
 	"""
 	startHooks()
 
+def trayEnabledChanged(icon):
+	""" Gets called when system tray "Enabled" changes state. This must keep track of its own state. """
+	gstate["enabled"] = not gstate["enabled"] # toggle it
+	if gstate["enabled"]:
+		startHooks()
+	else:
+		stopHooks()
 
 
 def createSystemTray():
@@ -168,9 +180,11 @@ def createSystemTray():
 
 	image = Image.open("icon-64.png")
 	menu = tray.Menu(
+		tray.MenuItem("VI Arrow Keys", lambda: 1, enabled=False), # inactive item with the program's title
+		tray.MenuItem('Enabled', trayEnabledChanged, checked=lambda item: gstate["enabled"]),
+		#tray.MenuItem('Resume', trayResume)
 		tray.MenuItem('Quit/Exit', lambda: gstate["icon"].stop()), # just calls icon.stop(), steps the whole program
-		tray.MenuItem('Pause', lambda: stopHooks()
-	))
+	)
 
 	gstate["icon"] = tray.Icon("VI Arrow Keys", image, "VI Arrow Keys", menu) # originally stored in "icon", stored globally though
 	gstate["icon"].visible = True
@@ -182,4 +196,7 @@ def run():
 	createSystemTray() # never ends
 
 if __name__ == "__main__":
-	run()
+	if config["enableSysTray"]:
+		run()
+	else:
+		startHooks(True)
