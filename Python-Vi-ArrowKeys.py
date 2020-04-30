@@ -4,8 +4,8 @@ import keyboard # install with "pip install keyboard"
 
 import sys
 
-globalStates = {
-	"down": set(), # list of characters currently pressed
+gstate = { # global state of the system
+	"down": set(), # set of characters currently pressed (set bc there will only ever be a single instance of each)
 	"lastInfo": "", # stores an information string printed to the user, for caching
 	"lastInfoCount": 0
 }
@@ -38,8 +38,16 @@ def hookCallback(event):
 
 	nameL = event.name.lower()
 
+	# Record whether this key was pressed (lower case)
+	if event.event_type == "up":
+		gstate["down"].discard(nameL) # use discard to avoid error if not in set
+	elif event.event_type == "down":
+		gstate["down"].add(nameL)
+
+
 	# Pass through normal keys (will require keys down check later)
-	if ('d' not in globalStates["down"]) or (nameL not in config["specials"]):
+	if ('d' not in gstate["down"]) or (nameL not in config["specials"]):
+		# if d is not pressed and this isn't for a d
 		if event.event_type == "down":
 			keyboard.press(event.scan_code) # scancode used to avoid issue with 'F' character (to be explicit)
 		elif event.event_type == "up":
@@ -47,16 +55,8 @@ def hookCallback(event):
 		else:
 			print("Unknown event type: " + event.event_type)
 
-
-	# Record whether this key was pressed (lower case)
-	if event.event_type == "up":
-		globalStates["down"].discard(nameL) # use discard to avoid error if not in list
-	elif event.event_type == "down":
-		globalStates["down"].add(nameL)
-
-
 	# Perform VI arrow remapping
-	if (nameL in config["maps"].keys()) and ('d' in globalStates["down"]):
+	if (nameL in config["maps"].keys()) and ('d' in gstate["down"]):
 		thisSend = config["maps"][nameL]
 		if event.event_type == "down":
 			keyboard.press(thisSend)
@@ -67,14 +67,14 @@ def hookCallback(event):
 
 	# Print debug info
 	if config["printDebug"]:
-		info = "\nNew Event: type({type})\tname({name})\t\tkeysDown({keysDown})) ".format(type=event.event_type, name=event.name, keysDown="|".join(globalStates["down"]))
-		if globalStates["lastInfo"] != info:
+		info = "\nNew Event: type({type})\tname({name})\t\tkeysDown({keysDown})) ".format(type=event.event_type, name=event.name, keysDown="|".join(gstate["down"]))
+		if gstate["lastInfo"] != info:
 			print(info, end="")
-			globalStates["lastInfoCount"] = 0
-		elif globalStates["lastInfoCount"] < 20: # only print out if it's not already been held for a while
+			gstate["lastInfoCount"] = 0
+		elif gstate["lastInfoCount"] < 20: # only print out if it's not already been held for a while
 			print(".", end="")
-			globalStates["lastInfoCount"] += 1
-		globalStates["lastInfo"] = info
+			gstate["lastInfoCount"] += 1
+		gstate["lastInfo"] = info
 
 
 	# Set hotkey for exiting the program
