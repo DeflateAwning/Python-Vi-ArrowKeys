@@ -1,0 +1,6 @@
+# Python-Vi-ArrowKeys requirements
+
+keyboard
+wheel
+pillow
+pystray

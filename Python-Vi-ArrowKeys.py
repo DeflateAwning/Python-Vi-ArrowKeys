@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import keyboard # install with "pip install keyboard"
+import pystray as tray # install with "pip install pystray"
+from PIL import Image # install with "pip install wheel pillow"
 
 import sys, string
 
@@ -9,11 +11,13 @@ gstate = { # global state of the system
 	"lastInfo": "", # stores an information string printed to the user, for caching
 	"lastInfoCount": 0,
 	"viTriggeredYet": False, # whether VI mode has been triggered while d has been pressed (decides where or not to type a 'd' on 'd UP')
-	"dSentYet": False # whether the 'd' character has been send yet (gets reset on 'd DOWN', and sent when 'd' is typed from either 'UP', 'cards', or 'world' section
+	"dSentYet": False, # whether the 'd' character has been send yet (gets reset on 'd DOWN', and sent when 'd' is typed from either 'UP', 'cards', or 'world' section
+	"icon": None, # system tray icon
 }
 
 config = {
 	"printDebug": True,
+	"enableSysTray": True,
 
 	"maps": { # VI Mappings
 		"h": "left",
@@ -22,17 +26,19 @@ config = {
 		"l": "right"
 	},
 
-	"enableQuickExit": True # press 'end' key to exit the program
+	"enableQuickExit": False # press 'end' key to exit the program (useful for debug only)
 }
 
 config["specials"] = list(config["maps"].keys()) + ["d"] # list of all special characters to remap
 
 #config["hookKeys"] = list(string.ascii_lowercase) + [' ', '+']# + ['shift'] # avoid hooking special keys, like 'left windows'
-config["hookKeys"] = list(string.punctuation) + list(string.ascii_lowercase) + list(string.digits) + ['space']
+config["hookKeys"] = list(string.punctuation) + list(string.ascii_lowercase) + list(string.digits) + ['space', 'end']
 
 def hookCallback(event):
 	"""
-	Called for every key down/up event.
+	Called for every key down/up event. This is where the remapping magic happens.
+	Everything after this method is just pretty system tray stuff.
+	
 	@param event a keyboard.KeyboardEvent object
 
 	Samples of event parameter (with event.to_json()):
@@ -112,15 +118,68 @@ def hookCallback(event):
 			gstate["lastInfoCount"] += 1
 		gstate["lastInfo"] = info
 
+def startHooks(waitAtEnd = False):
+	"""
+	Attaches keyboard hooks, starts the program basically.
+	"""
 
-# Hook all keys
-# Issues: fails with 'left windows', types a 'd' when shift is pressed, etc.
-#keyboard.hook(hookCallback, True) # supress characters
+	# Avoid duplicate hooks by removing all hooks first
+	#stopHooks()
 
-# Hook only letters (and maybe certain other characters)
-for character in config["hookKeys"]:
-	keyboard.hook_key(character, hookCallback, True) # supress characters
+	# Hook all keys
+	# Issues: fails with 'left windows', types a 'd' when shift is pressed, etc.
+	#keyboard.hook(hookCallback, True) # supress characters
+
+	# Hook only letters (and maybe certain other characters)
+	for character in config["hookKeys"]:
+		keyboard.hook_key(character, hookCallback, True) # supress characters
+
+	if config["printDebug"]:
+		print("\nAttached {} hooks.".format(len(config["hookKeys"])))
+
+	# wait forever (only useful for when this function is the last thing called, not for system tray)
+	if waitAtEnd:
+		keyboard.wait()
+
+def stopHooks():
+	"""
+	Removes keyboard hooks, stops listening. Pauses the program.
+	"""
+	keyboard.unhook_all_hotkeys()
+
+	if config["printDebug"]:
+		print("Stopped all hooks/paused the program.")
+
+def traySetup(icon):
+	"""
+	Gets called when the system tray icon is created.
+	This is run in a separate thread, and its completion is not awaited (it can run forever).
+	@param icon presumably the icon itself
+	"""
+	startHooks()
 
 
-# wait forever
-keyboard.wait()
+
+def createSystemTray():
+	"""
+	Sends the script to run in the system tray.
+	This method runs infinitely, until the program is stopped.
+	"""
+
+	image = Image.open("icon-64.png")
+	menu = tray.Menu(
+		tray.MenuItem('Quit/Exit', lambda: gstate["icon"].stop()), # just calls icon.stop(), steps the whole program
+		tray.MenuItem('Pause', lambda: stopHooks()
+	))
+
+	gstate["icon"] = tray.Icon("VI Arrow Keys", image, "VI Arrow Keys", menu) # originally stored in "icon", stored globally though
+	gstate["icon"].visible = True
+	gstate["icon"].run(setup=traySetup) # this creates an infinite loops and runs forever until exit here
+
+
+def run():
+	# Create the system tray icon
+	createSystemTray() # never ends
+
+if __name__ == "__main__":
+	run()
