@@ -19,6 +19,5 @@ Modifier keys (specifically, shift) are applied as pressed. This tool can be use
 ## Known Issues
 * Not all key up events are trigger properly for normal characters (ex: 'world'). This is speculative, but probably not actually an issue.
 * "carsd/cards" bug
-* "worl/world" bug
 
 If you come up with a fix, please make a pull request.

@@ -19,7 +19,9 @@ config = {
 		"j": "down",
 		"k": "up",
 		"l": "right"
-	}
+	},
+
+	"enableQuickExit": True # press 'end' key to exit the program
 }
 
 config["specials"] = list(config["maps"].keys()) + ["d"] # list of all special characters to remap
@@ -38,6 +40,10 @@ def hookCallback(event):
 	"""
 
 	nameL = event.name.lower()
+
+	# Set hotkey for exiting the program
+	if (nameL == "end") and config["enableQuickExit"]:
+		sys.exit()
 
 	# Record whether this key was pressed (lower case)
 	if event.event_type == "up":
@@ -67,8 +73,11 @@ def hookCallback(event):
 		elif event.event_type == "down":
 			pass # nothing goes here, alternatively we could reset viTriggeredYet=False here
 
-
-
+	# Fix "worl/world" bug
+	if any([thisVIKey in gstate["down"] for thisVIKey in config["maps"].keys()]) and (nameL == 'd' and event.event_type == 'down'):
+		# If any of the VI keys are currently pressed down, and 'd' is being PRESSED
+		keyboard.send('d') # this might only be a .press, actually; doesn't matter though
+		print("\nDid 'world' bug fix.")
 
 	# Perform VI arrow remapping
 	if (nameL in config["maps"].keys()) and ('d' in gstate["down"]):
@@ -93,9 +102,6 @@ def hookCallback(event):
 		gstate["lastInfo"] = info
 
 
-	# Set hotkey for exiting the program
-	if (nameL == "end"):
-		sys.exit()
 
 
 
