@@ -17,6 +17,8 @@ If you don't press any of those before releasing the D key, a "d" is typed.
 Modifier keys (specifically, shift) are applied as pressed. This tool can be used to move around, or select text.
 
 ## Known Issues
-* None yet, still developing
+* Not all key up events are trigger properly for normal characters (ex: 'world'). This is speculative, but probably not actually an issue.
+* "carsd/cards" bug
+* "worl/world" bug
 
 If you come up with a fix, please make a pull request.

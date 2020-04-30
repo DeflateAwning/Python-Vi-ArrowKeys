@@ -7,7 +7,8 @@ import sys
 gstate = { # global state of the system
 	"down": set(), # set of characters currently pressed (set bc there will only ever be a single instance of each)
 	"lastInfo": "", # stores an information string printed to the user, for caching
-	"lastInfoCount": 0
+	"lastInfoCount": 0,
+	"viTriggeredYet": False # whether VI mode has been triggered while d has been pressed (decides where or not to type a 'd' on 'd UP')
 }
 
 config = {
@@ -55,8 +56,23 @@ def hookCallback(event):
 		else:
 			print("Unknown event type: " + event.event_type)
 
+
+	# Pass through 'd' based on UP event
+	if (nameL == "d"):
+		if event.event_type == "up":
+			if not gstate["viTriggeredYet"]:
+				keyboard.send('d')
+			gstate["viTriggeredYet"] = False # reset to false
+
+		elif event.event_type == "down":
+			pass # nothing goes here, alternatively we could reset viTriggeredYet=False here
+
+
+
+
 	# Perform VI arrow remapping
 	if (nameL in config["maps"].keys()) and ('d' in gstate["down"]):
+		gstate["viTriggeredYet"] = True # VI triggered, no longer type a d on release
 		thisSend = config["maps"][nameL]
 		if event.event_type == "down":
 			keyboard.press(thisSend)
