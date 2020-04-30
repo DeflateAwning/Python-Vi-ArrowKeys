@@ -2,7 +2,7 @@
 
 import keyboard # install with "pip install keyboard"
 
-import sys
+import sys, string
 
 gstate = { # global state of the system
 	"down": set(), # set of characters currently pressed (set bc there will only ever be a single instance of each)
@@ -27,7 +27,8 @@ config = {
 
 config["specials"] = list(config["maps"].keys()) + ["d"] # list of all special characters to remap
 
-
+#config["hookKeys"] = list(string.ascii_lowercase) + [' ', '+']# + ['shift'] # avoid hooking special keys, like 'left windows'
+config["hookKeys"] = list(string.punctuation) + list(string.ascii_lowercase) + list(string.digits) + ['space']
 
 def hookCallback(event):
 	"""
@@ -102,7 +103,7 @@ def hookCallback(event):
 
 	# SECTION 7: Print debug info
 	if config["printDebug"]:
-		info = "\nNew Event: type({type})\tname({scancode} = {name})\t\tkeysDown({keysDown})) ".format(type=event.event_type, name=event.name, scancode=event.scan_code, keysDown="|".join(gstate["down"]))
+		info = "\nNew Event: type({type})\tname({scancode} = {name})\t\tkeysDown({keysDown}) ".format(type=event.event_type, name=event.name, scancode=event.scan_code, keysDown=" , ".join(gstate["down"]))
 		if gstate["lastInfo"] != info:
 			print(info, end="")
 			gstate["lastInfoCount"] = 0
@@ -112,10 +113,14 @@ def hookCallback(event):
 		gstate["lastInfo"] = info
 
 
+# Hook all keys
+# Issues: fails with 'left windows', types a 'd' when shift is pressed, etc.
+#keyboard.hook(hookCallback, True) # supress characters
 
+# Hook only letters (and maybe certain other characters)
+for character in config["hookKeys"]:
+	keyboard.hook_key(character, hookCallback, True) # supress characters
 
-
-keyboard.hook(hookCallback, True) # supress characters
 
 # wait forever
 keyboard.wait()

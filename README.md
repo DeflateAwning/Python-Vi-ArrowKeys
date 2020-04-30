@@ -1,7 +1,7 @@
-# AHK-Vi-ArrowKeys
-An ~AutoHotkey~ Python script that works like Karabiner for Mac's VI mode (but for Windows, now). Press and hold "D", and use the right hand home row to emulate arrow keys, based on the VI mapping.
+# Python-Vi-ArrowKeys
+A Python script that works like Karabiner for Mac's VI mode (but for Windows, now). Press and hold "D", and use the right hand home row to emulate arrow keys, based on the VI mapping.
 
-This project was originally attempted in AHK, but switched to Python for more flexibility.
+This project was originally attempted in AHK, but switched to Python for more flexibility. While it should be cross-platform, it has only beed tested on Windows.
 
 In a previous version of Karabiner for Mac, this mode was triggered by pressing S+D. However, now it is triggered by only pressing D (as per the most recent version of the Mac software).
 
@@ -12,14 +12,14 @@ While holding D:
 * K -> Up Arrow
 * L -> Right Arrow
 
-If you don't press any of those before releasing the D key, a "d" is typed.
+If you don't press any of those before releasing the D key, a "d" is typed (like normal).
 
 Modifier keys (specifically, shift) are applied as pressed. This tool can be used to move around, or select text.
 
-## Known Issues
-* Not all key up events are trigger properly for normal characters (ex: 'world'). This is speculative, but probably not actually an issue.
-* 'D' presses now occur when 'd' is lifted. For video games (especially those that use WASD-keys), you'll likely want to disable this software.
-* Some keys aren't passed through, like the Windows key.
+## Known Issues/Limitations
+* Not all **key up events are trigger** properly for normal characters (ex: 'world'). This is speculative, but probably not actually an issue.
+* 'D' presses now occur when 'd' is lifted (feels delayed). For video games (especially those that use WASD-keys), you'll likely want to disable this software.
+* Some keys, when typed very fast before or after a 'd', may behaviour weirdly: their position may be switched with the 'd' key. Examples of this include the 'tab' character. This can be solved on a character-by-character basis by adding them to the `config["hookKeys"]` list.
 
 If you come up with a fix, please make a pull request.
 If you notice a bug, please open an issue and/or make a pull request.
@@ -29,6 +29,8 @@ If you notice a bug, please open an issue and/or make a pull request.
 	* b -> go to start of word
 	* w -> go to end of word
 	* 0 -> go to start of line
+
+There are even more VI mappings that can be added after. We'll start with these, though.
 
 ## Refactoring Suggestions
 * Combine `gstate["viTriggeredYet"]` and `gstate["dSentYet"]` into a single `gstate["stillSendD"]` variable, that records whether or not to send the 'd'. Resets (to True) on the start of a d press, and gets flagged (to False) when a VI key is pressed, or the first time a 'd' is sent.
