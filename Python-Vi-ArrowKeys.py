@@ -56,14 +56,13 @@ def hookCallback(event):
 
 
 	# Perform VI arrow remapping
-	if (nameL in config["maps"].keys()) and event.event_type == "down" and ('d' in globalStates["down"]):
+	if (nameL in config["maps"].keys()) and ('d' in globalStates["down"]):
 		thisSend = config["maps"][nameL]
-		# Specifically send a shift if required, but not necessary because it's already recorded as pressed
-		# if "shift" in globalStates["down"]:
-		# 	# holding shift
-		# 	thisSend += "+shift"
+		if event.event_type == "down":
+			keyboard.press(thisSend)
+		elif event.event_type == "up":
+			keyboard.release(thisSend)
 		#print("\nSending: " + thisSend)
-		keyboard.send(thisSend) # press used instead of send because 'shift' is not applied continually if it is simulated released
 
 
 	# Print debug info
