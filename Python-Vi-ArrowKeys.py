@@ -38,20 +38,8 @@ def hookCallback(event):
 
 	nameL = event.name.lower()
 
-	# Print debug info
-	if config["printDebug"]:
-		info = "\nNew Event: type({type})\tname({name})\t\tkeysDown({keysDown}))".format(type=event.event_type, name=event.name, keysDown="|".join(globalStates["down"]))
-		if globalStates["lastInfo"] != info:
-			print(info, end="")
-			globalStates["lastInfoCount"] = 0
-		elif globalStates["lastInfoCount"] < 20: # only print out if it's not already been held for a while
-			print(".", end="")
-			globalStates["lastInfoCount"] += 1
-
-		globalStates["lastInfo"] = info
-
 	# Pass through normal keys (will require keys down check later)
-	if nameL not in config["specials"]:
+	if ('d' not in globalStates["down"]) or (nameL not in config["specials"]):
 		if event.event_type == "down":
 			keyboard.press(event.scan_code) # scancode used to avoid issue with 'F' character (to be explicit)
 		elif event.event_type == "up":
@@ -70,11 +58,24 @@ def hookCallback(event):
 	# Perform VI arrow remapping
 	if (nameL in config["maps"].keys()) and event.event_type == "down" and ('d' in globalStates["down"]):
 		thisSend = config["maps"][nameL]
-		if "shift" in globalStates["down"]:
-			# holding shift
-			thisSend += "+shift"
-		keyboard.send(thisSend)
+		# Specifically send a shift if required, but not necessary because it's already recorded as pressed
+		# if "shift" in globalStates["down"]:
+		# 	# holding shift
+		# 	thisSend += "+shift"
+		#print("\nSending: " + thisSend)
+		keyboard.send(thisSend) # press used instead of send because 'shift' is not applied continually if it is simulated released
 
+
+	# Print debug info
+	if config["printDebug"]:
+		info = "\nNew Event: type({type})\tname({name})\t\tkeysDown({keysDown})) ".format(type=event.event_type, name=event.name, keysDown="|".join(globalStates["down"]))
+		if globalStates["lastInfo"] != info:
+			print(info, end="")
+			globalStates["lastInfoCount"] = 0
+		elif globalStates["lastInfoCount"] < 20: # only print out if it's not already been held for a while
+			print(".", end="")
+			globalStates["lastInfoCount"] += 1
+		globalStates["lastInfo"] = info
 
 
 	# Set hotkey for exiting the program
