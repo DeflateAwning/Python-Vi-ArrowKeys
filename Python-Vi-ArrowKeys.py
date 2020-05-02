@@ -36,8 +36,8 @@ config = {
 
 config["specials"] = list(config["maps"].keys()) + ["d"] # list of all special characters to remap
 
-#config["hookKeys"] = list(string.ascii_lowercase) + [' ', '+']# + ['shift'] # avoid hooking special keys, like 'left windows'
-config["hookKeys"] = list(string.punctuation) + list(string.ascii_lowercase) + list(string.digits) + ['space', 'end']
+# List of keys to listen for and apply the system to (prevents issues when they're typed before or after a 'd')
+config["hookKeys"] = list(string.punctuation) + list(string.ascii_lowercase) + list(string.digits) + ['space', 'end', 'enter', 'backspace']
 
 def hookCallback(event):
 	"""
