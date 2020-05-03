@@ -1,4 +1,4 @@
-# Python-Vi-ArrowKeys
+# Python-Vi-ArrowKeys (pynput attempt)
 A Python script that works like Karabiner for Mac's VI mode (but for Windows, now). Press and hold "D", and use the right hand home row to emulate arrow keys, based on the VI mapping.
 
 This software creates a System Tray icon, and can be enabled/disabled from that icon.
@@ -6,6 +6,12 @@ This software creates a System Tray icon, and can be enabled/disabled from that 
 This project was originally attempted in AHK (see the `ahk-attempt` branch), but switched to Python for more flexibility. While it should be cross-platform, it has only beed tested on Windows.
 
 In a previous version of Karabiner for Mac, this mode was triggered by pressing S+D. However, now it is triggered by only pressing D (as per the most recent version of the Mac software).
+
+## pynput Implementation Attempt Notes
+* Problem is that currently, `controller.press(key)` and similar keystroke methods trigger the hook, resulting in an infinite typing loop. 
+	* Moved the sending to a function `sendStroke(stroke, strokeType)` that temporarily disables/enables the callback. This was far too slow though.
+	* In the future, try attaching hooks to only certain keys.
+* Also, converting the keyboard.KeyCode object `key` (in the callback function) to a string causes it to be wrapped in quotes. This requires more investigation, specifically in the creation of the `nameL` variable in the callback.
 
 ## List of Remappings
 While holding D:
@@ -22,6 +28,7 @@ Modifier keys (specifically, shift) are applied as pressed. This tool can be use
 * Not all **key up events are trigger** properly for normal characters (ex: 'world'). This is speculative, but probably not actually an issue.
 * 'D' presses now occur when 'd' is lifted (feels delayed). For video games (especially those that use WASD-keys), you'll likely want to disable this software.
 * Some keys, when typed very fast before or after a 'd', may behaviour weirdly: their position may be switched with the 'd' key. Examples of this include the 'tab' character. This can be solved on a character-by-character basis by adding them to the `config["hookKeys"]` list.
+* This **pynput** implementation does not currently work at all.
 
 If you come up with a fix, please make a pull request.
 If you notice a bug, please open an issue and/or make a pull request.

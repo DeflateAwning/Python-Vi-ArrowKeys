@@ -1,6 +1,7 @@
 # Python-Vi-ArrowKeys requirements
 
-keyboard
+#keyboard
+pynput
 wheel
 pillow
 pystray
