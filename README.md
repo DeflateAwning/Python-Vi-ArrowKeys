@@ -22,6 +22,9 @@ Modifier keys (specifically, shift) are applied as pressed. This tool can be use
 * Not all **key up events are trigger** properly for normal characters (ex: 'world'). This is speculative, but probably not actually an issue.
 * 'D' presses now occur when 'd' is lifted (feels delayed). For video games (especially those that use WASD-keys), you'll likely want to disable this software.
 * Some keys, when typed very fast before or after a 'd', may behaviour weirdly: their position may be switched with the 'd' key. Examples of this include the 'tab' character. This can be solved on a character-by-character basis by adding them to the `config["hookKeys"]` list.
+* Serious bug with keyboard having a number pad. When NUMLOCK is in a certain state, the shift key does not work for arrow key presses. Also, the number pad keys should not be bound.
+	* Look into binding/hooking numerical digits by scancode instead of by character (to avoid binding number pad keys).
+	* Figure out why shift key is not sent when NUMLOCK is in a certain state
 
 If you come up with a fix, please make a pull request.
 If you notice a bug, please open an issue and/or make a pull request.

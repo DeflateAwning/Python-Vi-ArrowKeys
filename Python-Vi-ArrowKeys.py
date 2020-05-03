@@ -21,8 +21,9 @@ gstate = { # global state of the system
 }
 
 config = {
-	"printDebug": False,
-	"enableSysTray": True,
+	"printDebug": False, 		# deployment: False
+	"enableSysTray": True,		# deployment: True
+	"enableQuickExit": False 	# deployment: False 	# press 'end' key to exit the program (useful for debug only)
 
 	"maps": { # VI Mappings
 		"h": "left",
@@ -31,7 +32,6 @@ config = {
 		"l": "right"
 	},
 
-	"enableQuickExit": False # press 'end' key to exit the program (useful for debug only)
 }
 
 config["specials"] = list(config["maps"].keys()) + ["d"] # list of all special characters to remap
