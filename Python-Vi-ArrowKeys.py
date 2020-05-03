@@ -23,7 +23,7 @@ gstate = { # global state of the system
 config = {
 	"printDebug": False, 		# deployment: False
 	"enableSysTray": True,		# deployment: True
-	"enableQuickExit": False 	# deployment: False 	# press 'end' key to exit the program (useful for debug only)
+	"enableQuickExit": False, 	# deployment: False 	# press 'end' key to exit the program (useful for debug only)
 
 	"maps": { # VI Mappings
 		"h": "left",
