@@ -21,7 +21,7 @@ gstate = { # global state of the system
 }
 
 config = {
-	"printDebug": False, 		# deployment: False
+	"printDebug": True, 		# deployment: False
 	"enableSysTray": True,		# deployment: True
 	"enableQuickExit": False, 	# deployment: False 	# press 'end' key to exit the program (useful for debug only)
 
@@ -37,7 +37,7 @@ config = {
 config["specials"] = list(config["maps"].keys()) + ["d"] # list of all special characters to remap
 
 # List of keys to listen for and apply the system to (prevents issues when they're typed before or after a 'd')
-config["hookKeys"] = list(string.punctuation) + list(string.ascii_lowercase) + list(string.digits) + ['space', 'end', 'enter', 'backspace']
+config["hookKeys"] = list(string.punctuation) + list(string.ascii_lowercase) + ['space', 'end', 'enter', 'backspace'] + list(string.digits)
 
 def hookCallback(event):
 	"""
@@ -74,9 +74,17 @@ def hookCallback(event):
 				keyboard.press('d')
 				gstate["dSentYet"] = True
 			
-			keyboard.press(event.scan_code) # scancode used to avoid issue with 'F' character (to be explicit)
+			# Actually send through the character (by character if on the numpad, otherwise by scancode)
+			if event.is_keypad:
+				keyboard.press(event.name) # used because numlock state is weird
+			else:
+				keyboard.press(event.scan_code) # scancode used to avoid issue with 'F' character (to be explicit)
 		elif event.event_type == "up":
-			keyboard.release(event.scan_code)
+			# Actually send through the character (by character if on the numpad, otherwise by scancode)
+			if event.is_keypad:
+				keyboard.release(event.name) # used because numlock state is weird
+			else:
+				keyboard.release(event.scan_code) # scancode used to avoid issue with 'F' character (to be explicit)
 		else:
 			print("Unknown event type: " + event.event_type)
 
@@ -114,7 +122,7 @@ def hookCallback(event):
 
 	# SECTION 7: Print debug info
 	if config["printDebug"]:
-		info = "\nNew Event: type({type})\tname({scancode} = {name})\t\tkeysDown({keysDown}) ".format(type=event.event_type, name=event.name, scancode=event.scan_code, keysDown=" , ".join(gstate["down"]))
+		info = "\nNew Event: type({type})\tname({scancode} = {name})\tkeysDown({keysDown})\tkeypad({keypad})".format(type=event.event_type, name=event.name, scancode=event.scan_code, keysDown=" , ".join(gstate["down"]), keypad=event.is_keypad)
 		if gstate["lastInfo"] != info:
 			print(info, end="")
 			gstate["lastInfoCount"] = 0
@@ -122,6 +130,7 @@ def hookCallback(event):
 			print(".", end="")
 			gstate["lastInfoCount"] += 1
 		gstate["lastInfo"] = info
+
 
 def startHooks(waitAtEnd = False):
 	"""
