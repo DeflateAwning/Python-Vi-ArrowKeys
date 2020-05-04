@@ -21,7 +21,7 @@ gstate = { # global state of the system
 }
 
 config = {
-	"printDebug": True, 		# deployment: False
+	"printDebug": False, 		# deployment: False
 	"enableSysTray": True,		# deployment: True
 	"enableQuickExit": False, 	# deployment: False 	# press 'end' key to exit the program (useful for debug only)
 
@@ -32,12 +32,25 @@ config = {
 		"l": "right"
 	},
 
+	"remaps": { # keycodes/nameL to remap to other characters
+		82: "0",
+		79: "1",
+		80: "2",
+		81: "3",
+		75: "4",
+		76: "5",
+		77: "6",
+		71: "7",
+		72: "8",
+		73: "9"
+	}
+
 }
 
 config["specials"] = list(config["maps"].keys()) + ["d"] # list of all special characters to remap
 
 # List of keys to listen for and apply the system to (prevents issues when they're typed before or after a 'd')
-config["hookKeys"] = list(string.punctuation) + list(string.ascii_lowercase) + ['space', 'end', 'enter', 'backspace'] + list(string.digits)
+config["hookKeys"] = list(string.punctuation) + list(string.ascii_lowercase) + ['space', 'end', 'enter', 'backspace', 'shift'] + list(string.digits)
 
 def hookCallback(event):
 	"""
@@ -71,18 +84,23 @@ def hookCallback(event):
 		if event.event_type == "down":
 			# Do 'cards' fix
 			if ('d' in gstate["down"]) and (not gstate["dSentYet"]):
-				keyboard.press('d')
-				gstate["dSentYet"] = True
+				if (nameL != "shift"): # don't send a 'd' if the order is ('d' then 'shift')
+					keyboard.press('d')
+					gstate["dSentYet"] = True
 			
 			# Actually send through the character (by character if on the numpad, otherwise by scancode)
 			if event.is_keypad:
-				keyboard.press(event.name) # used because numlock state is weird
+				keyboard.press(config["remaps"][event.scan_code]) # always use the actual number character, regardless of numlock, used because numlock state is weird
 			else:
+				# if (nameL in (['left', 'right', 'up', 'down'] + list(config['maps'].keys()))) and "shift" in gstate["down"]:
+				# 	keyboard.press(keyboard.get_hotkey_name(['shift', event.scan_code]))
+				# 	print("Send shift+nameL")
+				# else:
 				keyboard.press(event.scan_code) # scancode used to avoid issue with 'F' character (to be explicit)
 		elif event.event_type == "up":
 			# Actually send through the character (by character if on the numpad, otherwise by scancode)
 			if event.is_keypad:
-				keyboard.release(event.name) # used because numlock state is weird
+				keyboard.release(config["remaps"][event.scan_code]) # always use the actual number character, regardless of numlock, used because numlock state is weird
 			else:
 				keyboard.release(event.scan_code) # scancode used to avoid issue with 'F' character (to be explicit)
 		else:
@@ -122,7 +140,7 @@ def hookCallback(event):
 
 	# SECTION 7: Print debug info
 	if config["printDebug"]:
-		info = "\nNew Event: type({type})\tname({scancode} = {name})\tkeysDown({keysDown})\tkeypad({keypad})".format(type=event.event_type, name=event.name, scancode=event.scan_code, keysDown=" , ".join(gstate["down"]), keypad=event.is_keypad)
+		info = "\nNew Event: type({type})\tname({scancode} = {name})\tkeysDown({keysDown})\tkeypad({keypad})".format(type=event.event_type, name=event.name, scancode=event.scan_code, keysDown=" | ".join(gstate["down"]), keypad=event.is_keypad)
 		if gstate["lastInfo"] != info:
 			print(info, end="")
 			gstate["lastInfoCount"] = 0
