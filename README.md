@@ -28,7 +28,7 @@ Modifier keys (specifically, shift) are applied as pressed. This tool can be use
 * Serious bug with keyboard having a number pad. When NUMLOCK is TURNED ON, the shift key does not work for arrow key presses.
 	* Example: Selection using the VI key mapping doesn't work while NUMLOCK ON
 	* This is currently fixed by requring NUMLOCK to be TURNED OFF, and all keypad keys act as their number.
-* Typing sequences like 'Did' causes both the 'Di' to be both capital or both lower case. No known fix currently.
+* Typing sequences like 'Did' causes both the 'Di' to be both capital or both lower case. No known fix currently. "Discord" with 'D' typed with 'right shift' is an example.
 
 If you come up with a fix, please make a pull request.
 If you notice a bug, please open an issue and/or make a pull request.
