@@ -21,7 +21,7 @@ gstate = { # global state of the system
 }
 
 config = {
-	"printDebug": False, 		# deployment: False
+	"printDebug": True, 		# deployment: False
 	"enableSysTray": True,		# deployment: True
 	"enableQuickExit": False, 	# deployment: False 	# press 'end' key to exit the program (useful for debug only)
 

@@ -19,20 +19,25 @@ If you don't press any of those before releasing the D key, a "d" is typed (like
 Modifier keys (specifically, shift) are applied as pressed. This tool can be used to move around, or select text.
 
 ## Known Issues/Limitations
+### Inherent Limitations (Not Required)
 * Not all **key up events are trigger** properly for normal characters (ex: 'world'). This is speculative, but probably not actually an issue.
 * 'D' presses now occur when 'd' is lifted (feels delayed). For video games (especially those that use WASD-keys), you'll likely want to disable this software.
 * Some keys, when typed very fast before or after a 'd', may behaviour weirdly: their position may be switched with the 'd' key. Examples of this include the 'tab' character. This can be solved on a character-by-character basis by adding them to the `config["hookKeys"]` list.
+
+### Problematic Issues
 * Serious bug with keyboard having a number pad. When NUMLOCK is TURNED ON, the shift key does not work for arrow key presses.
+	* Example: Selection using the VI key mapping doesn't work while NUMLOCK ON
 	* This is currently fixed by requring NUMLOCK to be TURNED OFF, and all keypad keys act as their number.
+* Typing sequences like 'Did' causes both the 'Di' to be both capital or both lower case. No known fix currently.
 
 If you come up with a fix, please make a pull request.
 If you notice a bug, please open an issue and/or make a pull request.
 
 ## Future Ideas:
 * Consider the following mappings:
-	* b -> go to start of word
-	* w -> go to end of word
-	* 0 -> go to start of line
+	* b -> go to start of word (ctrl+left)
+	* w -> go to end of word (ctrl+right)
+	* 0 -> go to start of line (ctrl+up?)
 * Add a "disable for x amount of time" submenu in system tray icon.
 * Add an "Features Enabled" submenu in the system tray icon.
 
