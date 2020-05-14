@@ -30,20 +30,6 @@ config = {
 		'j': "down",
 		'k': "up",
 		'l': "right"
-	},
-
-	"remaps": {					# keycodes/nameL to remap to other characters
-		82: '0',
-		79: '1',
-		80: '2',
-		81: '3',
-		75: '4',
-		76: '5',
-		77: '6',
-		71: '7',
-		72: '8',
-		73: '9',
-		83: '.'
 	}
 }
 
@@ -85,34 +71,39 @@ def hookCallback(event):
 		down_event = True
 	else:
 		printf("Unknown event type: " + event.event_type)
-		return
+	
 
+	# SECTION 2.5: Numlock hack fix for shift-arrow selection
+	"""
+	if scancode in (42,54):
+		if down_event:
+			kb.press((42,54)) # press right and left shift to counteract the numlock auto-unshift
+		else:
+			kb.release((42,42,54)) # release both shifts, plus the automatic one (order is important for some reason)
+	"""
+	if "shift" in nameL:
+		if down_event:
+			kb.press(("left shift", "right shift"))
+		else:
+			kb.release(("left shift", "left shift", "right shift"))
 
+	if nameL in ('up', 'down', 'left', 'right') or event.is_keypad:
+		gstate['viTriggeredYet'] = True
+
+	
 	# SECTION 3: Pass through normal keys (will require keys down check later)
 	if ('d' not in gstate['down']) or (nameL not in config['specials']):
 		# if d is not pressed and this isn't for a d
 		if down_event:
 			# Do 'cards' fix
 			if ('d' in gstate['down']) and (not gstate['dSentYet']):
-				if (nameL != "shift"): # don't send a 'd' if the order is ('d' then 'shift')
+				# don't send a 'd' if a hotkey follows before the d is released)
+				if (nameL not in ('shift', 'left shift', 'right shift', 'up', 'down', 'left', 'right') and not event.is_keypad):
 					kb.press('d')
 					gstate['dSentYet'] = True
-			
-			# Actually send through the character (by character if on the numpad, otherwise by scancode)
-			if event.is_keypad:
-				kb.press(config['remaps'][scancode]) # always use the actual number character, regardless of numlock. Used because numlock state is weird
-			else:
-				# if (nameL in (['left', 'right', 'up', 'down'] + list(config['maps'].keys()))) and "shift" in gstate['down']:
-				# 	kb.press(kb.get_hotkey_name(['shift', scancode]))
-				# 	printf("Send shift+nameL")
-				# else:
-				kb.press(scancode) # scancode used to avoid issue with 'F' character (to be explicit)
+			kb.press(scancode)
 		else:
-			# Actually send through the character (by character if on the numpad, otherwise by scancode)
-			if event.is_keypad:
-				kb.release(config['remaps'][scancode]) # always use the actual number character, regardless of numlock, used because numlock state is weird
-			else:
-				kb.release(scancode) # scancode used to avoid issue with 'F' character (to be explicit)
+			kb.release(scancode)
 
 
 	# SECTION 4: Pass through 'd' based on UP event
@@ -134,6 +125,7 @@ def hookCallback(event):
 		#printf("\nDid 'world' bug fix.")
 		gstate['dSentYet'] = True
 
+
 	# SECTION 6: Perform VI arrow remapping
 	if (nameL in config['maps'].keys()) and ('d' in gstate['down']):
 		gstate['viTriggeredYet'] = True # VI triggered, no longer type a 'd' on release
@@ -143,7 +135,7 @@ def hookCallback(event):
 		else:
 			kb.release(thisSend)
 		#printf("\nSending: " + thisSend)
-	
+
 
 	# SECTION 7: Print Debug Info
 	if config['printDebug']:
