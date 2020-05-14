@@ -2,7 +2,7 @@
 
 # Project Homepage: https://github.com/ThePiGuy/Python-Vi-ArrowKeys
 
-import keyboard # install with "pip install keyboard"
+import keyboard as kb # install with "pip install keyboard"
 import pystray as tray # install with "pip install pystray"
 from PIL import Image # install with "pip install wheel pillow"
 
@@ -48,10 +48,6 @@ config = {
 }
 
 
-def printf(*args, **kwargs):
-	""" A print function that flushes the buffer for immediate feedback. """
-	print(*args, **kwargs, flush=True)
-
 
 config['specials'] = list(config['maps'].keys()) + ['d'] # list of all special characters to remap
 
@@ -72,63 +68,69 @@ def hookCallback(event):
 	"""
 
 	nameL = event.name.lower()
+	scancode = event.scan_code
 
 	# SECTION 1: Set hotkey for exiting the program
 	if (nameL == "end") and config['enableQuickExit']:
 		sys.exit()
 
+
 	# SECTION 2: Record whether this key was pressed (lower case)
+	down_event = False
 	if event.event_type == "up":
 		gstate['down'].discard(nameL) # use discard to avoid error if not in set
+		down_event = False
 	elif event.event_type == "down":
 		gstate['down'].add(nameL)
+		down_event = True
+	else:
+		printf("Unknown event type: " + event.event_type)
+		return
+
 
 	# SECTION 3: Pass through normal keys (will require keys down check later)
 	if ('d' not in gstate['down']) or (nameL not in config['specials']):
 		# if d is not pressed and this isn't for a d
-		if event.event_type == "down":
+		if down_event:
 			# Do 'cards' fix
 			if ('d' in gstate['down']) and (not gstate['dSentYet']):
 				if (nameL != "shift"): # don't send a 'd' if the order is ('d' then 'shift')
-					keyboard.press('d')
+					kb.press('d')
 					gstate['dSentYet'] = True
 			
 			# Actually send through the character (by character if on the numpad, otherwise by scancode)
 			if event.is_keypad:
-				keyboard.press(config['remaps'][event.scan_code]) # always use the actual number character, regardless of numlock. Used because numlock state is weird
+				kb.press(config['remaps'][scancode]) # always use the actual number character, regardless of numlock. Used because numlock state is weird
 			else:
 				# if (nameL in (['left', 'right', 'up', 'down'] + list(config['maps'].keys()))) and "shift" in gstate['down']:
-				# 	keyboard.press(keyboard.get_hotkey_name(['shift', event.scan_code]))
+				# 	kb.press(kb.get_hotkey_name(['shift', scancode]))
 				# 	printf("Send shift+nameL")
 				# else:
-				keyboard.press(event.scan_code) # scancode used to avoid issue with 'F' character (to be explicit)
-		elif event.event_type == "up":
+				kb.press(scancode) # scancode used to avoid issue with 'F' character (to be explicit)
+		else:
 			# Actually send through the character (by character if on the numpad, otherwise by scancode)
 			if event.is_keypad:
-				keyboard.release(config['remaps'][event.scan_code]) # always use the actual number character, regardless of numlock, used because numlock state is weird
+				kb.release(config['remaps'][scancode]) # always use the actual number character, regardless of numlock, used because numlock state is weird
 			else:
-				keyboard.release(event.scan_code) # scancode used to avoid issue with 'F' character (to be explicit)
-		else:
-			printf("Unknown event type: " + event.event_type)
+				kb.release(scancode) # scancode used to avoid issue with 'F' character (to be explicit)
 
 
 	# SECTION 4: Pass through 'd' based on UP event
-	if (nameL == "d"):
-		if event.event_type == "up":
+	if (nameL == 'd'):
+		if down_event:
+			# alternatively we could reset viTriggeredYet=False here
+			gstate['dSentYet'] = False # reset to not sent yet
+		else:
 			if (not gstate['viTriggeredYet']) and (not gstate['dSentYet']):
-				keyboard.send('d')
+				kb.send('d')
 				gstate['dSentYet'] = True
 			gstate['viTriggeredYet'] = False # reset to false
 
-		elif event.event_type == "down":
-			# alternatively we could reset viTriggeredYet=False here
-			gstate['dSentYet'] = False # reset to not sent yet
-
 
 	# SECTION 5: Fix "worl/world" bug
-	if any([thisVIKey in gstate['down'] for thisVIKey in config['maps'].keys()]) and (nameL == 'd' and event.event_type == 'down'):
+	if any([thisVIKey in gstate['down'] for thisVIKey in config['maps'].keys()]) and (nameL == 'd' and down_event):
 		# If any of the VI keys are currently pressed down, and 'd' is being PRESSED
-		keyboard.send('d') # this might only be a .press, actually; doesn't matter though
+		kb.send('d') # this might only be a .press, actually; doesn't matter though
 		#printf("\nDid 'world' bug fix.")
 		gstate['dSentYet'] = True
 
@@ -136,25 +138,25 @@ def hookCallback(event):
 	if (nameL in config['maps'].keys()) and ('d' in gstate['down']):
 		gstate['viTriggeredYet'] = True # VI triggered, no longer type a 'd' on release
 		thisSend = config['maps'][nameL]
-		if event.event_type == "down":
-			keyboard.press(thisSend)
-		elif event.event_type == "up":
-			keyboard.release(thisSend)
+		if down_event:
+			kb.press(thisSend)
+		else:
+			kb.release(thisSend)
 		#printf("\nSending: " + thisSend)
+	
 
-
-	# SECTION 7: Print debug info
+	# SECTION 7: Print Debug Info
 	if config['printDebug']:
 		info = "\nNew Event: type({type})\tname({scancode} = {name})\tkeysDown({keysDown})\tkeypad({keypad})".format(type=event.event_type, \
-                        name=event.name, scancode=event.scan_code, keysDown=" | ".join(gstate['down']), keypad=event.is_keypad)
+	                    name=event.name, scancode=scancode, keysDown=" | ".join(gstate['down']), keypad=event.is_keypad)
 		if gstate['lastInfo'] != info:
 			printf(info, end="")
 			gstate['lastInfoCount'] = 0
 		elif gstate['lastInfoCount'] < 20: # only print out if it's not already been held for a while
 			printf(".", end="")
-			gtate['lastInfoCount'] += 1
+			gstate['lastInfoCount'] += 1
 		gstate['lastInfo'] = info
-
+	
 
 def startHooks(waitAtEnd = False):
 	"""
@@ -166,27 +168,29 @@ def startHooks(waitAtEnd = False):
 
 	# Hook all keys
 	# Issues: fails with 'left windows', types a 'd' when shift is pressed, etc.
-	#keyboard.hook(hookCallback, True) # supress characters
+	#kb.hook(hookCallback, True) # supress characters
 
 	# Hook only letters (and maybe certain other characters)
 	for character in config['hookKeys']:
-		keyboard.hook_key(character, hookCallback, True) # supress characters
+		kb.hook_key(character, hookCallback, True) # supress characters
 
 	if config['printDebug']:
 		printf("\nAttached {} hooks.".format(len(config['hookKeys'])))
 
 	# wait forever (only useful for when this function is the last thing called, not for system tray)
 	if waitAtEnd:
-		keyboard.wait()
+		kb.wait()
+
 
 def stopHooks():
 	"""
 	Removes keyboard hooks, stops listening. Pauses the program.
 	"""
-	keyboard.unhook_all() # should do it, but it doesn't
+	kb.unhook_all() # should do it, but it doesn't
 
 	if config['printDebug']:
 		printf("\nStopped all hooks/paused the program.")
+
 
 def traySetup(icon):
 	"""
@@ -195,6 +199,7 @@ def traySetup(icon):
 	@param icon presumably the icon itself
 	"""
 	startHooks()
+
 
 def trayEnabledChanged(icon):
 	""" Gets called when system tray "Enabled" changes state. This must keep track of its own state. """
@@ -227,6 +232,12 @@ def createSystemTray():
 def run():
 	# Create the system tray icon
 	createSystemTray() # never ends
+
+
+def printf(*args, **kwargs):
+	""" A print function that flushes the buffer for immediate feedback. """
+	print(*args, **kwargs, flush=True)
+
 
 if __name__ == "__main__":
 	if config['enableSysTray']:
