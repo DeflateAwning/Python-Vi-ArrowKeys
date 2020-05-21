@@ -103,10 +103,6 @@ def hookCallback(event):
 			if event.is_keypad:
 				kb.press(config['remaps'][scancode]) # always use the actual number character, regardless of numlock. Used because numlock state is weird
 			else:
-				# if (nameL in (['left', 'right', 'up', 'down'] + list(config['maps'].keys()))) and "shift" in gstate['down']:
-				# 	kb.press(kb.get_hotkey_name(['shift', scancode]))
-				# 	printf("Send shift+nameL")
-				# else:
 				kb.press(scancode) # scancode used to avoid issue with 'F' character (to be explicit)
 		else:
 			# Actually send through the character (by character if on the numpad, otherwise by scancode)
