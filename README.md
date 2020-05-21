@@ -18,6 +18,10 @@ If you don't press any of those before releasing the D key, a "d" is typed (like
 
 Modifier keys (specifically, shift) are applied as pressed. This tool can be used to move around, or select text.
 
+## Acknowledgements
+* [Toshiro T.](https://github.com/robotoshi) for assistance in debugging "Discord" bug, and helping to explore the Number Lock issues.
+* [Keyboard icon](https://icons8.com/icons/set/keyboard) by [Icons8](https://icons8.com).
+
 ## Known Issues/Limitations
 ### Inherent Limitations (Not Required)
 * Not all **key up events are trigger** properly for normal characters (ex: 'world'). This is speculative, but probably not actually an issue.
@@ -28,16 +32,6 @@ Modifier keys (specifically, shift) are applied as pressed. This tool can be use
 * Serious bug with keyboard having a number pad. When NUMLOCK is TURNED ON, the shift key does not work for arrow key presses.
 	* Example: Selection using the VI key mapping doesn't work while NUMLOCK ON
 	* This is currently fixed by requring NUMLOCK to be TURNED OFF, and all keypad keys act as their number.
-* Typing sequences like 'Did' causes both the 'Di' to be both capital or both lower case. No known fix currently. "Discord" with 'D' typed with 'right shift' is an example.
-```
-Exact Sample of this bug:
-shift	down
-d 		down
-shift	up
-i		down
-d 		up			obvious
-i		up			obvious
-```
 
 If you come up with a fix, please make a pull request.
 If you notice a bug, please open an issue and/or make a pull request.
@@ -88,5 +82,3 @@ Prints debug info about the current event, and various states. In the future (or
 
 Sample of Debug Info: `New Event: type(down)   name(42 = shift)                keysDown(space|shift))`
 
-## Acknowledgements
-* [Keyboard icon](https://icons8.com/icons/set/keyboard) by [Icons8](https://icons8.com).
