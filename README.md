@@ -29,6 +29,15 @@ Modifier keys (specifically, shift) are applied as pressed. This tool can be use
 	* Example: Selection using the VI key mapping doesn't work while NUMLOCK ON
 	* This is currently fixed by requring NUMLOCK to be TURNED OFF, and all keypad keys act as their number.
 * Typing sequences like 'Did' causes both the 'Di' to be both capital or both lower case. No known fix currently. "Discord" with 'D' typed with 'right shift' is an example.
+```
+Exact Sample of this bug:
+shift	down
+d 		down
+shift	up
+i		down
+d 		up			obvious
+i		up			obvious
+```
 
 If you come up with a fix, please make a pull request.
 If you notice a bug, please open an issue and/or make a pull request.
