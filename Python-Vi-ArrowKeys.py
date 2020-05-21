@@ -52,7 +52,7 @@ config = {
 config['specials'] = list(config['maps'].keys()) + ['d'] # list of all special characters to remap
 
 # List of keys to listen for and apply the system to (prevents issues when they're typed before or after a 'd')
-config['hookKeys'] = list(string.punctuation) + list(string.ascii_lowercase) + ['space', 'end', 'enter', 'backspace', 'shift'] + list(string.digits)
+config['hookKeys'] = list(string.punctuation) + list(string.ascii_lowercase) + ['space', 'end', 'enter', 'backspace'] + list(string.digits)
 
 def hookCallback(event):
 	"""
@@ -76,13 +76,13 @@ def hookCallback(event):
 
 
 	# SECTION 2: Record whether this key was pressed (lower case)
-	down_event = False
+	downEvent = False
 	if event.event_type == "up":
 		gstate['down'].discard(nameL) # use discard to avoid error if not in set
-		down_event = False
+		downEvent = False
 	elif event.event_type == "down":
 		gstate['down'].add(nameL)
-		down_event = True
+		downEvent = True
 	else:
 		printf("Unknown event type: " + event.event_type)
 		return
@@ -91,9 +91,10 @@ def hookCallback(event):
 	# SECTION 3: Pass through normal keys (will require keys down check later)
 	if ('d' not in gstate['down']) or (nameL not in config['specials']):
 		# if d is not pressed and this isn't for a d
-		if down_event:
+		if downEvent:
 			# Do 'cards' fix
 			if ('d' in gstate['down']) and (not gstate['dSentYet']):
+				# the following always evaluates to true now that the 'shift' hook is not present
 				if (nameL != "shift"): # don't send a 'd' if the order is ('d' then 'shift')
 					kb.press('d')
 					gstate['dSentYet'] = True
@@ -117,7 +118,7 @@ def hookCallback(event):
 
 	# SECTION 4: Pass through 'd' based on UP event
 	if (nameL == 'd'):
-		if down_event:
+		if downEvent:
 			# alternatively we could reset viTriggeredYet=False here
 			gstate['dSentYet'] = False # reset to not sent yet
 		else:
@@ -128,7 +129,7 @@ def hookCallback(event):
 
 
 	# SECTION 5: Fix "worl/world" bug
-	if any([thisVIKey in gstate['down'] for thisVIKey in config['maps'].keys()]) and (nameL == 'd' and down_event):
+	if any([thisVIKey in gstate['down'] for thisVIKey in config['maps'].keys()]) and (nameL == 'd' and downEvent):
 		# If any of the VI keys are currently pressed down, and 'd' is being PRESSED
 		kb.send('d') # this might only be a .press, actually; doesn't matter though
 		#printf("\nDid 'world' bug fix.")
@@ -138,7 +139,7 @@ def hookCallback(event):
 	if (nameL in config['maps'].keys()) and ('d' in gstate['down']):
 		gstate['viTriggeredYet'] = True # VI triggered, no longer type a 'd' on release
 		thisSend = config['maps'][nameL]
-		if down_event:
+		if downEvent:
 			kb.press(thisSend)
 		else:
 			kb.release(thisSend)
