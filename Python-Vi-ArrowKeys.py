@@ -14,6 +14,7 @@ gstate = {						# global state of the system
 	"lastInfoCount": 0,			# comment
 	"viTriggeredYet": False,	# whether VI mode has been triggered while d has been pressed (decides where or not to type a 'd' on 'd UP')
 	"dSentYet": False,			# whether the 'd' character has been send yet (gets reset on 'd DOWN', and sent when 'd' is typed from either 'UP', 'cards', or 'world' section
+	"wasDUppercase": None,		# whether the 'd' character was uppercase or not when pressed
 
 	"icon": None,				# system tray icon
 	"enabled": True,			# system tray enabled
@@ -96,7 +97,11 @@ def hookCallback(event):
 			if ('d' in gstate['down']) and (not gstate['dSentYet']):
 				# the following always evaluates to true now that the 'shift' hook is not present
 				if (nameL != "shift"): # don't send a 'd' if the order is ('d' then 'shift')
-					kb.press('d')
+					# "Discord" bug fix (but never actually activated, explore in the future potentially if "Discord" bug reappears)
+					# if gstate["wasDUppercase"]:
+					# 	kb.send('shift+d')
+					# else:
+					kb.press('d') # This should be send, maybe (check back later, if it's an issue)
 					gstate['dSentYet'] = True
 			
 			# Actually send through the character (by character if on the numpad, otherwise by scancode)
@@ -117,9 +122,14 @@ def hookCallback(event):
 		if downEvent:
 			# alternatively we could reset viTriggeredYet=False here
 			gstate['dSentYet'] = False # reset to not sent yet
+			gstate['wasDUppercase'] = (event.name == 'D')
 		else:
 			if (not gstate['viTriggeredYet']) and (not gstate['dSentYet']):
-				kb.send('d')
+				# "Discord" bug fix
+				if gstate["wasDUppercase"]:
+					kb.send('shift+d')
+				else:
+					kb.send('d')
 				gstate['dSentYet'] = True
 			gstate['viTriggeredYet'] = False # reset to false
 
