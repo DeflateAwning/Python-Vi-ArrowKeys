@@ -24,9 +24,11 @@ Modifier keys (specifically, shift) are applied as pressed. This tool can be use
 
 ## Known Issues/Limitations
 ### Inherent Limitations (Not Required)
-* Not all **key up events are trigger** properly for normal characters (ex: 'world'). This is speculative, but probably not actually an issue.
-* 'D' presses now occur when 'd' is lifted (feels delayed). For video games (especially those that use WASD-keys), you'll likely want to disable this software.
+* Not all **key up events are triggered** properly for normal characters (ex: 'world'). This is speculative, but probably not actually an issue.
+* 'D' presses now occur when 'd' is lifted (feels delayed). For video games (especially those that use WASD-keys), you'll likely want to disable this software, or use Raw Input grabbing in the video game.
 * Some keys, when typed very fast before or after a 'd', may behaviour weirdly: their position may be switched with the 'd' key. Examples of this include the 'tab' character. This can be solved on a character-by-character basis by adding them to the `config["hookKeys"]` list.
+* This program works with Synergy (keyboard/mouse sharing software) on the host computer, as long as Synergy is run in non-elevated mode. If Synergy is disabled then re-enabled, it must be Restarted with the "Restart" button in the tray.
+* This software does not run on Mac with systray. No other testing/development has been done.
 
 ### Problematic Issues
 * Serious bug with keyboard having a number pad. When NUMLOCK is TURNED ON, the shift key does not work for arrow key presses.

@@ -6,7 +6,7 @@ import keyboard as kb # install with "pip install keyboard"
 import pystray as tray # install with "pip install pystray"
 from PIL import Image # install with "pip install wheel pillow"
 
-import sys, string
+import sys, string, os
 
 gstate = {						# global state of the system
 	"down": set(),				# set of characters currently pressed (set bc there will only ever be a single instance of each)
@@ -216,6 +216,15 @@ def trayEnabledChanged(icon):
 	else:
 		stopHooks()
 
+def trayRestartButton(icon):
+	"""
+	Gets called when system tray "Restart" is called. 
+	Used because Synergy only allows forwarding of this program's changes if this program is started after Synergy (must be a full start, not just re-Enable).
+	Source: https://stackoverflow.com/questions/48129942/python-restart-program/48130340
+	"""
+
+	os.execl(sys.executable, os.path.abspath(__file__), *sys.argv)
+
 
 def createSystemTray():
 	"""
@@ -228,6 +237,7 @@ def createSystemTray():
 		tray.MenuItem("VI Arrow Keys", lambda: 1, enabled=False), # inactive item with the program's title
 		tray.MenuItem('Enabled', trayEnabledChanged, checked=lambda item: gstate['enabled']),
 		#tray.MenuItem('Resume', trayResume)
+		tray.MenuItem('Restart', trayRestartButton),
 		tray.MenuItem('Quit/Exit', lambda: gstate['icon'].stop()), # just calls icon.stop(), steps the whole program
 	)
 
