@@ -34,6 +34,11 @@ Modifier keys (specifically, shift) are applied as pressed. This tool can be use
 * Serious bug with keyboard having a number pad. When NUMLOCK is TURNED ON, the shift key does not work for arrow key presses.
 	* Example: Selection using the VI key mapping doesn't work while NUMLOCK ON
 	* This is currently fixed by requring NUMLOCK to be TURNED OFF, and all keypad keys act as their number.
+* The 'D' key registers as lowercase with capslock on, unless another key is typed at the same time (before the 'd' key up).
+	* Ex: dARK (typed slow), but ASDF works
+* While holding 'left shift', all characters typed after a 'd' will appear lowercase.
+	* Ex: Ddddddd (with 'lshift' pressed the whole time)
+	* Note: Does not apply to 'right shift' though.
 
 If you come up with a fix, please make a pull request.
 If you notice a bug, please open an issue and/or make a pull request.
