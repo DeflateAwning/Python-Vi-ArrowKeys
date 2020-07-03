@@ -28,17 +28,12 @@ Modifier keys (specifically, shift) are applied as pressed. This tool can be use
 * 'D' presses now occur when 'd' is lifted (feels delayed). For video games (especially those that use WASD-keys), you'll likely want to disable this software, or use Raw Input grabbing in the video game.
 * Some keys, when typed very fast before or after a 'd', may behaviour weirdly: their position may be switched with the 'd' key. Examples of this include the 'tab' character. This can be solved on a character-by-character basis by adding them to the `config["hookKeys"]` list.
 * This program works with Synergy (keyboard/mouse sharing software) on the host computer, as long as Synergy is run in non-elevated mode. If Synergy is disabled then re-enabled, it must be Restarted with the "Restart" button in the tray.
-* This software does not run on Mac with systray. No other testing/development has been done.
+* **System Compatibility:** This software does not run on Mac with systray. No other testing/development has been done.
 
 ### Problematic Issues
 * Serious bug with keyboard having a number pad. When NUMLOCK is TURNED ON, the shift key does not work for arrow key presses.
 	* Example: Selection using the VI key mapping doesn't work while NUMLOCK ON
 	* This is currently fixed by requring NUMLOCK to be TURNED OFF, and all keypad keys act as their number.
-* The 'D' key registers as lowercase with capslock on, unless another key is typed at the same time (before the 'd' key up).
-	* Ex: dARK (typed slow), but ASDF works
-* While holding 'left shift', all characters typed after a 'd' will appear lowercase.
-	* Ex: Ddddddd (with 'lshift' pressed the whole time)
-	* Note: Does not apply to 'right shift' though.
 
 If you come up with a fix, please make a pull request.
 If you notice a bug, please open an issue and/or make a pull request.
@@ -60,10 +55,10 @@ There are even more VI mappings that can be added after. We'll start with these,
 The following sections are labelled with comments in the Python code. Each section is within the `hookCallback(event)` function, and handles a certain type of key press/release occurrence.
 
 ### **Section 1:** Fast exit hotkey
-By pressing the "END" key, the program is exited. Can be disabled in the `config["enableQuickExit"]`. Useful for stopping the program if any bugs occur and the keyboard is blocked.
+By pressing the "END" key, the program is exited. Can be disabled in the `config['enableQuickExit']`. Useful for stopping the program if any bugs occur and the keyboard is blocked.
 
 ### **Section 2:** Record keys currently down
-Updates the set() at `gstate["down"]` with lowercase names of all keys currently pressed.
+Updates the set() at `gstate['down']` with lowercase names of all keys currently pressed. Also updates the capslock state.
 
 ### **Section 3:** Pass Through Normal Keys
 Passes through normal (non-VI) keys. This section is activated when 'd' is not held down, or when the key being received is not a VI key.

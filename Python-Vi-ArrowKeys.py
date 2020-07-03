@@ -10,11 +10,13 @@ import sys, string, os
 
 gstate = {						# global state of the system
 	"down": set(),				# set of characters currently pressed (set bc there will only ever be a single instance of each)
+	"shiftsDown": set(),		# set of shift keys pressed down (left shift, right shift, shift)
 	"lastInfo": "",				# stores an information string printed to the user, for caching
 	"lastInfoCount": 0,			# comment
 	"viTriggeredYet": False,	# whether VI mode has been triggered while d has been pressed (decides where or not to type a 'd' on 'd UP')
 	"dSentYet": False,			# whether the 'd' character has been send yet (gets reset on 'd DOWN', and sent when 'd' is typed from either 'UP', 'cards', or 'world' section
 	"wasDUppercase": None,		# whether the 'd' character was uppercase or not when pressed
+	"capslockState": False,		# True=capslock on, False=capslock off; updated on every keypress
 
 	"icon": None,				# system tray icon
 	"enabled": True,			# system tray enabled
@@ -22,7 +24,7 @@ gstate = {						# global state of the system
 }
 
 config = {
-	"printDebug": True,			# deployment: False
+	"printDebug": False,			# deployment: False
 	"enableSysTray": True,		# deployment: True
 	"enableQuickExit": False,	# deployment: False 	# press 'end' key to exit the program (useful for debug only)
 
@@ -33,7 +35,7 @@ config = {
 		'l': "right"
 	},
 
-	"remaps": {					# keycodes/nameL to remap to other characters
+	"remaps": {					# scan codes/nameL to remap to other characters (primarily number pad)
 		82: '0',
 		79: '1',
 		80: '2',
@@ -45,15 +47,41 @@ config = {
 		72: '8',
 		73: '9',
 		83: '.'
-	}
+	},
+
+	# List of keys to listen for and apply the system to (prevents issues when they're typed before or after a 'd')
+	"hookKeys": list(string.punctuation) + list(string.ascii_lowercase) + ['space', 'end', 'enter', 'backspace'] + list(string.digits),
+	"listenKeys": ["shift", "right shift", "left shift"] # just listen to the shift keys for use in the main handler (can only be shifts)
 }
 
 
 
 config['specials'] = list(config['maps'].keys()) + ['d'] # list of all special characters to remap
 
-# List of keys to listen for and apply the system to (prevents issues when they're typed before or after a 'd')
-config['hookKeys'] = list(string.punctuation) + list(string.ascii_lowercase) + ['space', 'end', 'enter', 'backspace'] + list(string.digits)
+def listenCallback(event):
+	"""
+	Non-supressing listener for certain keys, like the three shift options.
+	Used to fix issue where all letters after a D are capitals.
+	"""
+
+	nameL = event.name.lower()
+	
+	## Record which shift was pressed.
+	downEvent = False
+	if event.event_type == "up":
+		if 'shift' in nameL:
+			gstate['shiftsDown'].discard(nameL) # use discard to avoid error if not in set
+		downEvent = False
+	elif event.event_type == "down":
+		if 'shift' in nameL:
+			gstate['shiftsDown'].add(nameL)
+		downEvent = True
+	else:
+		printf("Unknown event type: " + event.event_type)
+		return
+
+	## Print Debug Info
+	printDebugInfo("Listen", event)
 
 def hookCallback(event):
 	"""
@@ -88,6 +116,15 @@ def hookCallback(event):
 		printf("Unknown event type: " + event.event_type)
 		return
 
+	# SECTION 2a: Determine capslock state
+	if nameL in string.ascii_lowercase:
+		# only update for letters, not numbers nor symbols
+		if (event.name in string.ascii_lowercase) and (len(gstate['shiftsDown']) > 0):
+			gstate['capslockState'] = True
+		elif (event.name in string.ascii_uppercase) and (len(gstate['shiftsDown']) == 0):
+			gstate['capslockState'] = True
+		else:
+			gstate['capslockState'] = False
 
 	# SECTION 3: Pass through normal keys (will require keys down check later)
 	if ('d' not in gstate['down']) or (nameL not in config['specials']):
@@ -95,23 +132,17 @@ def hookCallback(event):
 		if downEvent:
 			# Do 'cards' fix
 			if ('d' in gstate['down']) and (not gstate['dSentYet']):
-				# the following always evaluates to true now that the 'shift' hook is not present
-				if (nameL != "shift"): # don't send a 'd' if the order is ('d' then 'shift')
-					# "Discord" bug fix (but never actually activated, explore in the future potentially if "Discord" bug reappears)
-					# if gstate["wasDUppercase"]:
-					# 	kb.send('shift+d')
-					# else:
-					kb.press('d') # This should be send, maybe (check back later, if it's an issue)
-					gstate['dSentYet'] = True
+				kb.press('d') # This should be send, maybe (check back later, if it's an issue)
+				gstate['dSentYet'] = True
 			
 			# Actually send through the character (by character if on the numpad, otherwise by scancode)
-			if event.is_keypad:
+			if event.is_keypad and (scancode in config['remaps'].keys()):
 				kb.press(config['remaps'][scancode]) # always use the actual number character, regardless of numlock. Used because numlock state is weird
 			else:
 				kb.press(scancode) # scancode used to avoid issue with 'F' character (to be explicit)
 		else:
 			# Actually send through the character (by character if on the numpad, otherwise by scancode)
-			if event.is_keypad:
+			if event.is_keypad and (scancode in config['remaps'].keys()):
 				kb.release(config['remaps'][scancode]) # always use the actual number character, regardless of numlock, used because numlock state is weird
 			else:
 				kb.release(scancode) # scancode used to avoid issue with 'F' character (to be explicit)
@@ -126,8 +157,15 @@ def hookCallback(event):
 		else:
 			if (not gstate['viTriggeredYet']) and (not gstate['dSentYet']):
 				# "Discord" bug fix
-				if gstate["wasDUppercase"]:
-					kb.send('shift+d')
+				if gstate["wasDUppercase"] and (not gstate['capslockState']):
+					# Determine what type of shift to press so that the keyup works later
+					if (len(gstate['shiftsDown']) == 0):
+						kb.send('shift+d')
+					else:
+						kb.press(list(gstate['shiftsDown'])[0])
+						kb.send('d')
+					#kb.press('shift')
+					#kb.send('d')
 				else:
 					kb.send('d')
 				gstate['dSentYet'] = True
@@ -151,11 +189,15 @@ def hookCallback(event):
 			kb.release(thisSend)
 		#printf("\nSending: " + thisSend)
 	
+	# Section 7: Print Debug Info
+	printDebugInfo("Hook", event)
 
+def printDebugInfo(callbackType, event):
 	# SECTION 7: Print Debug Info
 	if config['printDebug']:
-		info = "\nNew Event: type({type})\tname({scancode} = {name})\tkeysDown({keysDown})\tkeypad({keypad})".format(type=event.event_type, \
-	                    name=event.name, scancode=scancode, keysDown=" | ".join(gstate['down']), keypad=event.is_keypad)
+		info = "\nNew {callbackType} Event: type({type})\tname({scancode} = {name})\tkeysDown({keysDown})\tkeypad({keypad})\tcaps({capslockState})".\
+						format(callbackType=callbackType, type=event.event_type, capslockState=gstate['capslockState'], \
+	                    name=event.name, scancode=event.scan_code, keysDown=" | ".join(gstate['down']) + " || " + " | ".join(gstate['shiftsDown']), keypad=event.is_keypad)
 		if gstate['lastInfo'] != info:
 			printf(info, end="")
 			gstate['lastInfoCount'] = 0
@@ -165,7 +207,7 @@ def hookCallback(event):
 		gstate['lastInfo'] = info
 	
 
-def startHooks(waitAtEnd = False):
+def startHooks():
 	"""
 	Attaches keyboard hooks, starts the program basically.
 	"""
@@ -181,11 +223,14 @@ def startHooks(waitAtEnd = False):
 	for character in config['hookKeys']:
 		kb.hook_key(character, hookCallback, True) # supress characters
 
+	for character in config['listenKeys']:
+		kb.hook_key(character, listenCallback, False) # don't supress characters
+
 	if config['printDebug']:
 		printf("\nAttached {} hooks.".format(len(config['hookKeys'])))
 
 	# wait forever (only useful for when this function is the last thing called, not for system tray)
-	if waitAtEnd:
+	if not config["enableSysTray"]:
 		kb.wait()
 
 
@@ -260,4 +305,4 @@ if __name__ == "__main__":
 	if config['enableSysTray']:
 		run()
 	else:
-		startHooks(True)
+		startHooks()
