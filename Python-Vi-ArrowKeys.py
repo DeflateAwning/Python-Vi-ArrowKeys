@@ -32,7 +32,9 @@ config = {
 		'h': "left",
 		'j': "down",
 		'k': "up",
-		'l': "right"
+		'l': "right",
+		'w': "ctrl+right",
+		'b': "ctrl+left"
 	},
 
 	"remaps": {					# scan codes/nameL to remap to other characters (primarily number pad)

@@ -13,6 +13,8 @@ While holding D:
 * J -> Down Arrow
 * K -> Up Arrow
 * L -> Right Arrow
+* W -> jump forward a word
+* B -> jump backwards a word
 
 If you don't press any of those before releasing the D key, a "d" is typed (like normal).
 
@@ -39,9 +41,7 @@ If you come up with a fix, please make a pull request.
 If you notice a bug, please open an issue and/or make a pull request.
 
 ## Future Ideas:
-* Consider the following mappings:
-	* b -> go to start of word (ctrl+left)
-	* w -> go to end of word (ctrl+right)
+* Consider the following mapping(s):
 	* 0 -> go to start of line (ctrl+up?)
 * Add a "disable for x amount of time" submenu in system tray icon.
 * Add an "Features Enabled" submenu in the system tray icon.
@@ -51,7 +51,7 @@ There are even more VI mappings that can be added after. We'll start with these,
 ## Refactoring Suggestions
 * Combine `gstate["viTriggeredYet"]` and `gstate["dSentYet"]` into a single `gstate["stillSendD"]` variable, that records whether or not to send the 'd'. Resets (to True) on the start of a d press, and gets flagged (to False) when a VI key is pressed, or the first time a 'd' is sent.
 
-## Documentation
+## Code Structure
 The following sections are labelled with comments in the Python code. Each section is within the `hookCallback(event)` function, and handles a certain type of key press/release occurrence.
 
 ### **Section 1:** Fast exit hotkey
