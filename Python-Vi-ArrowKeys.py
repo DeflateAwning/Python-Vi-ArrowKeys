@@ -102,11 +102,18 @@ def hookCallback(event):
 	scancode = event.scan_code
 
 	# SECTION 1: Set hotkey for exiting the program
+	"""
+	By pressing the "END" key, the program is exited. Can be disabled in the `config['enableQuickExit']`.
+	Useful for stopping the program if any bugs occur and the keyboard is blocked.
+	"""
 	if (nameL == "end") and config['enableQuickExit']:
 		sys.exit()
 
 
 	# SECTION 2: Record whether this key was pressed (lower case)
+	"""
+	Updates the set() at `gstate['down']` with lowercase names of all keys currently pressed. Also updates the capslock state (Section 2a).
+	"""
 	downEvent = False
 	if event.event_type == "up":
 		gstate['down'].discard(nameL) # use discard to avoid error if not in set
@@ -129,6 +136,15 @@ def hookCallback(event):
 			gstate['capslockState'] = False
 
 	# SECTION 3: Pass through normal keys (will require keys down check later)
+	"""
+	Passes through normal (non-VI) keys. This section is activated when 'd' is not held down, or when the key being received is not a VI key.
+
+	* If the key event_type is UP (key received is being released), a release is simply sent to the computer.
+	* If the key event_type is DOWN (key received is being pressed):
+		1. We check to see if 'd' is pressed down currently, and see if it has been sent for this time it is pressed.
+			* If this is the case, as would be when **typing "cards" very quickly,** (known as the 'cards' bug) send a 'd' before the received event
+		2. Finally, send the received event
+	"""
 	if ('d' not in gstate['down']) or (nameL not in config['specials']):
 		# if d is not pressed and this isn't for a d
 		if downEvent:
@@ -151,6 +167,10 @@ def hookCallback(event):
 
 
 	# SECTION 4: Pass through 'd' based on UP event
+	"""
+	Normally (neglecting fast consecutive presses), the 'd' key is sent on a key up event. 
+	However, it is not sent if either 1) a VI key was pressed since it was pressed down, or 2) it was already sent because of a fast consecutive press
+	"""
 	if (nameL == 'd'):
 		if downEvent:
 			# alternatively we could reset viTriggeredYet=False here
@@ -175,13 +195,23 @@ def hookCallback(event):
 
 
 	# SECTION 5: Fix "worl/world" bug
+	"""
+	Send 'd' after VI key (fixes 'world' bug)
+	* When you type the word "world" fast, the 'l' and 'd' cause a unique case that must be caught here.
+	* The `if any([...]) and <d pressed down right now>` statement checks to see if any VI keys are currently pressed, and checks to see if the current event is 'd DOWN'.
+	"""
 	if any([thisVIKey in gstate['down'] for thisVIKey in config['maps'].keys()]) and (nameL == 'd' and downEvent):
 		# If any of the VI keys are currently pressed down, and 'd' is being PRESSED
 		kb.send('d') # this might only be a .press, actually; doesn't matter though
 		#printf("\nDid 'world' bug fix.")
 		gstate['dSentYet'] = True
 
+
+
 	# SECTION 6: Perform VI arrow remapping
+	"""
+	If the key is a mappable key, and 'd' is currently held down, send the appropriate arrowkey.
+	"""
 	if (nameL in config['maps'].keys()) and ('d' in gstate['down']):
 		gstate['viTriggeredYet'] = True # VI triggered, no longer type a 'd' on release
 		
@@ -198,6 +228,9 @@ def hookCallback(event):
 		#printf("\nSending: " + thisSendKey)
 	
 	# Section 7: Print Debug Info
+	"""
+	Prints debug info about the current event, and various states. In the future (or as needed), add a printout of `gstate` to the end.
+	"""
 	printDebugInfo("Hook", event)
 
 def printDebugInfo(callbackType, event):
