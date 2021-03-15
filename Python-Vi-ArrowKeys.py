@@ -2,9 +2,9 @@
 
 # Project Homepage: https://github.com/ThePiGuy/Python-Vi-ArrowKeys
 
-import keyboard as kb # install with "pip install keyboard"
-import pystray as tray # install with "pip install pystray"
-from PIL import Image # install with "pip install wheel pillow"
+import keyboard as kb
+import pystray as tray
+from PIL import Image
 
 import sys, string, os
 
@@ -24,17 +24,17 @@ gstate = {						# global state of the system
 }
 
 config = {
-	"printDebug": False,			# deployment: False
+	"printDebug": False,		# deployment: False
 	"enableSysTray": True,		# deployment: True
 	"enableQuickExit": False,	# deployment: False 	# press 'end' key to exit the program (useful for debug only)
 
 	"maps": {					# VI Mappings
-		'h': "left",
-		'j': "down",
-		'k': "up",
-		'l': "right",
-		'w': "ctrl+right",
-		'b': "ctrl+left"
+		'h': {"action": "left"},
+		'j': {"action": "down"},
+		'k': {"action": "up"},
+		'l': {"action": "right"},
+		'w': {"action": "ctrl+right", "method": "press+release"}, # special behaviour: do the press and release all at once
+		'b': {"action": "ctrl+left", "method": "press+release"},
 	},
 
 	"remaps": {					# scan codes/nameL to remap to other characters (primarily number pad)
@@ -184,12 +184,18 @@ def hookCallback(event):
 	# SECTION 6: Perform VI arrow remapping
 	if (nameL in config['maps'].keys()) and ('d' in gstate['down']):
 		gstate['viTriggeredYet'] = True # VI triggered, no longer type a 'd' on release
-		thisSend = config['maps'][nameL]
-		if downEvent:
-			kb.press(thisSend)
-		else:
-			kb.release(thisSend)
-		#printf("\nSending: " + thisSend)
+		
+		thisSendSetup = config['maps'][nameL] # dict with 'action' as the key(s) to press, and 'method' as 'press+release' or blank for normal
+		thisSendKey = thisSendSetup['action']
+		if thisSendSetup.get('method') == 'press+release':
+			if downEvent:
+				kb.send(thisSendKey)
+		else: # normal method, do press/release separately as triggered by keyboard
+			if downEvent:
+				kb.press(thisSendKey)
+			else:
+				kb.release(thisSendKey)
+		#printf("\nSending: " + thisSendKey)
 	
 	# Section 7: Print Debug Info
 	printDebugInfo("Hook", event)
@@ -283,7 +289,6 @@ def createSystemTray():
 	menu = tray.Menu(
 		tray.MenuItem("VI Arrow Keys", lambda: 1, enabled=False), # inactive item with the program's title
 		tray.MenuItem('Enabled', trayEnabledChanged, checked=lambda item: gstate['enabled']),
-		#tray.MenuItem('Resume', trayResume)
 		tray.MenuItem('Restart', trayRestartButton),
 		tray.MenuItem('Quit/Exit', lambda: gstate['icon'].stop()), # just calls icon.stop(), steps the whole program
 	)
