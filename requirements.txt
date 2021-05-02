@@ -4,3 +4,4 @@ keyboard
 wheel
 pillow
 pystray
+py_win_keyboard_layout

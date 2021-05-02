@@ -5,8 +5,45 @@
 import keyboard as kb
 import pystray as tray
 from PIL import Image
+import py_win_keyboard_layout as kbl
 
 import sys, string, os
+
+dvorakCodes = [-255851511] # obtained from kbl.get_foreground_window_keyboard_layout() while the Dvorak keyboard is active
+def getCurKBLayout():
+	return kbl.get_foreground_window_keyboard_layout()
+
+def convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(keyLetter:str):
+	"""
+	Converts a Dvorak key to the assocated Qwerty key (the letter physically labelled on the keyboard), but only if the keyboard is currently in Dvorak mode. 
+	Otherwise, just returns the input value.
+
+	This function does not yet contain a full remapping. It was intended to be used only on the special charaters (home row, plus a few letters), so any values outside of this range will simply result in the input value being returned.
+
+	@param qwertyKey a single character to find on the physical keyboard, and return what Dvorak key is there
+	@return the Qwerty key that the input key is physically labelled with
+	"""
+	
+	# consts for remapping; index in each or these strings matches the index in the other string
+	dvorakInput =  "',.pyfgcrlaoeuidhtn;qjkxbmw"
+	qwertyOutput = "qwertyuiopasdfghjklzxcvbnm," # source: http://wbic16.xedoloh.com/dvorak.html
+
+	if len(keyLetter) != 1:
+		# just pass through cases like "enter" and "backspace"
+		return keyLetter
+
+	if getCurKBLayout() in dvorakCodes:
+		# we are in Dvorak mode, do conversion
+
+		if keyLetter in dvorakInput:
+			indexInStr = dvorakInput.index(keyLetter)
+			return qwertyOutput[indexInStr]
+		else:
+			return keyLetter
+	else:
+		# not in Dvorak, just pass through
+		return keyLetter
+
 
 gstate = {						# global state of the system
 	"down": set(),				# set of characters currently pressed (set bc there will only ever be a single instance of each)
@@ -20,7 +57,7 @@ gstate = {						# global state of the system
 
 	"icon": None,				# system tray icon
 	"enabled": True,			# system tray enabled
-
+	"triggerKey": 'e' if (getCurKBLayout() in dvorakCodes) else 'd',
 }
 
 config = {
@@ -28,13 +65,13 @@ config = {
 	"enableSysTray": True,		# deployment: True
 	"enableQuickExit": False,	# deployment: False 	# press 'end' key to exit the program (useful for debug only)
 
-	"maps": {					# VI Mappings
+	"maps": {					# VI Mappings (defined using qwerty positions)
 		'h': {"action": "left"},
 		'j': {"action": "down"},
 		'k': {"action": "up"},
 		'l': {"action": "right"},
-		'w': {"action": "ctrl+right", "method": "press+release"}, # special behaviour: do the press and release all at once
-		'b': {"action": "ctrl+left", "method": "press+release"},
+		',' if (getCurKBLayout() in dvorakCodes) else 'w': {"action": "ctrl+right", "method": "press+release"}, # special behaviour: do the press and release all at once
+		'n' if (getCurKBLayout() in dvorakCodes) else 'b': {"action": "ctrl+left", "method": "press+release"},
 	},
 
 	"remaps": {					# scan codes/nameL to remap to other characters (primarily number pad)
@@ -48,10 +85,10 @@ config = {
 		71: '7',
 		72: '8',
 		73: '9',
-		83: '.'
+		83: '.' # FIXME agh
 	},
 
-	# List of keys to listen for and apply the system to (prevents issues when they're typed before or after a 'd')
+	# List of keys to listen for and apply the system to (prevents issues when they're typed before or after a gstate['triggerKey'])
 	"hookKeys": list(string.punctuation) + list(string.ascii_lowercase) + ['space', 'end', 'enter', 'backspace'] + list(string.digits),
 	"listenKeys": ["shift", "right shift", "left shift"] # just listen to the shift keys for use in the main handler (can only be shifts)
 }
@@ -59,6 +96,7 @@ config = {
 
 
 config['specials'] = list(config['maps'].keys()) + ['d'] # list of all special characters to remap
+# Note that this uses the Qwerty names for all the keys (instead of gstate['triggerKey'], for example); conversion is done later on
 
 def listenCallback(event):
 	"""
@@ -145,12 +183,12 @@ def hookCallback(event):
 			* If this is the case, as would be when **typing "cards" very quickly,** (known as the 'cards' bug) send a 'd' before the received event
 		2. Finally, send the received event
 	"""
-	if ('d' not in gstate['down']) or (nameL not in config['specials']):
+	if (gstate['triggerKey'] not in gstate['down']) or (convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(nameL) not in config['specials']):
 		# if d is not pressed and this isn't for a d
 		if downEvent:
 			# Do 'cards' fix
-			if ('d' in gstate['down']) and (not gstate['dSentYet']):
-				kb.press('d') # This should be send, maybe (check back later, if it's an issue)
+			if (gstate['triggerKey'] in gstate['down']) and (not gstate['dSentYet']):
+				kb.press(gstate['triggerKey']) # This should be send, maybe (check back later, if it's an issue)
 				gstate['dSentYet'] = True
 			
 			# Actually send through the character (by character if on the numpad, otherwise by scancode)
@@ -171,11 +209,11 @@ def hookCallback(event):
 	Normally (neglecting fast consecutive presses), the 'd' key is sent on a key up event. 
 	However, it is not sent if either 1) a VI key was pressed since it was pressed down, or 2) it was already sent because of a fast consecutive press
 	"""
-	if (nameL == 'd'):
+	if (nameL == gstate['triggerKey']):
 		if downEvent:
 			# alternatively we could reset viTriggeredYet=False here
 			gstate['dSentYet'] = False # reset to not sent yet
-			gstate['wasDUppercase'] = (event.name == 'D')
+			gstate['wasDUppercase'] = (event.name == gstate['triggerKey'].upper())
 		else:
 			if (not gstate['viTriggeredYet']) and (not gstate['dSentYet']):
 				# "Discord" bug fix
@@ -185,11 +223,11 @@ def hookCallback(event):
 						kb.send('shift+d')
 					else:
 						kb.press(list(gstate['shiftsDown'])[0])
-						kb.send('d')
+						kb.send(gstate['triggerKey'])
 					#kb.press('shift')
-					#kb.send('d')
+					#kb.send(gstate['triggerKey'])
 				else:
-					kb.send('d')
+					kb.send(gstate['triggerKey'])
 				gstate['dSentYet'] = True
 			gstate['viTriggeredYet'] = False # reset to false
 
@@ -200,9 +238,13 @@ def hookCallback(event):
 	* When you type the word "world" fast, the 'l' and 'd' cause a unique case that must be caught here.
 	* The `if any([...]) and <d pressed down right now>` statement checks to see if any VI keys are currently pressed, and checks to see if the current event is 'd DOWN'.
 	"""
-	if any([thisVIKey in gstate['down'] for thisVIKey in config['maps'].keys()]) and (nameL == 'd' and downEvent):
+	if any(
+		[
+			thisVIKey in [convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(i) for i in gstate['down']]
+			for thisVIKey in config['maps'].keys()
+		]) and (nameL == gstate['triggerKey'] and downEvent):
 		# If any of the VI keys are currently pressed down, and 'd' is being PRESSED
-		kb.send('d') # this might only be a .press, actually; doesn't matter though
+		kb.send(gstate['triggerKey']) # this might only be a .press, actually; doesn't matter though
 		#printf("\nDid 'world' bug fix.")
 		gstate['dSentYet'] = True
 
@@ -212,10 +254,10 @@ def hookCallback(event):
 	"""
 	If the key is a mappable key, and 'd' is currently held down, send the appropriate arrowkey.
 	"""
-	if (nameL in config['maps'].keys()) and ('d' in gstate['down']):
+	if (convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(nameL) in config['maps'].keys()) and (gstate['triggerKey'] in gstate['down']):
 		gstate['viTriggeredYet'] = True # VI triggered, no longer type a 'd' on release
 		
-		thisSendSetup = config['maps'][nameL] # dict with 'action' as the key(s) to press, and 'method' as 'press+release' or blank for normal
+		thisSendSetup = config['maps'][convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(nameL)] # dict with 'action' as the key(s) to press, and 'method' as 'press+release' or blank for normal
 		thisSendKey = thisSendSetup['action']
 		if thisSendSetup.get('method') == 'press+release':
 			if downEvent:
