@@ -25,8 +25,8 @@ def convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(keyLetter:str):
 	"""
 	
 	# consts for remapping; index in each or these strings matches the index in the other string
-	dvorakInput =  "',.pyfgcrlaoeuidhtn;qjkxbmw"
-	qwertyOutput = "qwertyuiopasdfghjklzxcvbnm," # source: http://wbic16.xedoloh.com/dvorak.html
+	dvorakInput =  "',.pyfgcrlaoeuidhtn;qjkxbmw/"
+	qwertyOutput = "qwertyuiopasdfghjklzxcvbnm,[" # source: http://wbic16.xedoloh.com/dvorak.html
 
 	if len(keyLetter) != 1:
 		# just pass through cases like "enter" and "backspace"
@@ -85,7 +85,8 @@ config = {
 		71: '7',
 		72: '8',
 		73: '9',
-		83: '.' # FIXME agh
+		83: '.',
+		53: '/',
 	},
 
 	# List of keys to listen for and apply the system to (prevents issues when they're typed before or after a gstate['triggerKey'])
