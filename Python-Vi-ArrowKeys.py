@@ -2,12 +2,13 @@
 
 # Project Homepage: https://github.com/ThePiGuy/Python-Vi-ArrowKeys
 
+import collections
 import keyboard as kb
 import pystray as tray
 from PIL import Image
-import py_win_keyboard_layout as kbl
+import py_win_keyboard_layout as kbl # keyboard layout only
 
-import sys, string, os
+import sys, string, os, time
 
 dvorakCodes = [-255851511] # obtained from kbl.get_foreground_window_keyboard_layout() while the Dvorak keyboard is active
 def getCurKBLayout():
@@ -25,8 +26,8 @@ def convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(keyLetter:str):
 	"""
 	
 	# consts for remapping; index in each or these strings matches the index in the other string
-	dvorakInput =  "',.pyfgcrlaoeuidhtn;qjkxbmw/"
-	qwertyOutput = "qwertyuiopasdfghjklzxcvbnm,[" # source: http://wbic16.xedoloh.com/dvorak.html
+	dvorakInput =  "',.pyfgcrlaoeuidhtn;qjkxbmw/s"
+	qwertyOutput = "qwertyuiopasdfghjklzxcvbnm,[;" # source: http://wbic16.xedoloh.com/dvorak.html
 
 	if len(keyLetter) != 1:
 		# just pass through cases like "enter" and "backspace"
@@ -58,6 +59,7 @@ gstate = {						# global state of the system
 	"icon": None,				# system tray icon
 	"enabled": True,			# system tray enabled
 	"triggerKey": 'e' if (getCurKBLayout() in dvorakCodes) else 'd',
+	"keypressTimeBuffer": collections.deque(maxlen=3), # cyclical buffer used to get typing speed
 }
 
 config = {
@@ -91,13 +93,36 @@ config = {
 
 	# List of keys to listen for and apply the system to (prevents issues when they're typed before or after a gstate['triggerKey'])
 	"hookKeys": list(string.punctuation) + list(string.ascii_lowercase) + ['space', 'end', 'enter', 'backspace'] + list(string.digits),
-	"listenKeys": ["shift", "right shift", "left shift"] # just listen to the shift keys for use in the main handler (can only be shifts)
+	"listenKeys": ["shift", "right shift", "left shift"], # just listen to the shift keys for use in the main handler (can only be shifts)
+	"speedCheck_wpmMin": 50,
+	"speedCheck_timeoutSec": 2,
 }
 
 
 
 config['specials'] = list(config['maps'].keys()) + ['d'] # list of all special characters to remap
 # Note that this uses the Qwerty names for all the keys (instead of gstate['triggerKey'], for example); conversion is done later on
+
+
+def printf(*args, **kwargs):
+	""" A print function that flushes the buffer for immediate feedback. """
+	print(*args, **kwargs, flush=True)
+
+
+def printDebugInfo(callbackType, event):
+	# SECTION 7: Print Debug Info
+	if config['printDebug']:
+		info = "\nNew {callbackType} Event: type({type})\tname({scancode} = {name})\tkeysDown({keysDown})\tkeypad({keypad})\tcaps({capslockState})".\
+						format(callbackType=callbackType, type=event.event_type, capslockState=gstate['capslockState'], \
+	                    name=event.name, scancode=event.scan_code, keysDown=" | ".join(gstate['down']) + " || " + " | ".join(gstate['shiftsDown']), keypad=event.is_keypad)
+		if gstate['lastInfo'] != info:
+			printf(info, end="")
+			gstate['lastInfoCount'] = 0
+		elif gstate['lastInfoCount'] < 20: # only print out if it's not already been held for a while
+			printf(".", end="")
+			gstate['lastInfoCount'] += 1
+		gstate['lastInfo'] = info
+	
 
 def listenCallback(event):
 	"""
@@ -139,6 +164,26 @@ def hookCallback(event):
 
 	nameL = event.name.lower()
 	scancode = event.scan_code
+
+	# SECTION 0: Don't do anything if we're legit typing normal words
+	if (event.event_type == "down") and nameL in string.ascii_lowercase:
+		if len(gstate['keypressTimeBuffer']) > 0 and (time.time() - gstate['keypressTimeBuffer'][0] > config['speedCheck_timeoutSec']):
+			# greater than 2-sec timeout
+			gstate['keypressTimeBuffer'].clear()
+			printf(f'Clearing speed check buffer.')
+
+		# lowercase letter was typed, this counts toward wpm
+		gstate['keypressTimeBuffer'].append(time.time())
+		
+		if len(gstate['keypressTimeBuffer']) >= 2:
+			typingSpeed_charPSec = (len(gstate['keypressTimeBuffer'])) / (gstate['keypressTimeBuffer'][-1] - gstate['keypressTimeBuffer'][0])
+			printf(f"Checking speed. Real: {typingSpeed_charPSec:.4f} char/sec. Buffer: {gstate['keypressTimeBuffer']}.")
+
+			if typingSpeed_charPSec > config['speedCheck_wpmMin']*5/60:
+				# typing faster than the threshold on average, skip detail
+				printf(f'Typing faster than threshold. Pass through.')
+				kb.press(scancode)
+				return
 
 	# SECTION 1: Set hotkey for exiting the program
 	"""
@@ -276,20 +321,7 @@ def hookCallback(event):
 	"""
 	printDebugInfo("Hook", event)
 
-def printDebugInfo(callbackType, event):
-	# SECTION 7: Print Debug Info
-	if config['printDebug']:
-		info = "\nNew {callbackType} Event: type({type})\tname({scancode} = {name})\tkeysDown({keysDown})\tkeypad({keypad})\tcaps({capslockState})".\
-						format(callbackType=callbackType, type=event.event_type, capslockState=gstate['capslockState'], \
-	                    name=event.name, scancode=event.scan_code, keysDown=" | ".join(gstate['down']) + " || " + " | ".join(gstate['shiftsDown']), keypad=event.is_keypad)
-		if gstate['lastInfo'] != info:
-			printf(info, end="")
-			gstate['lastInfoCount'] = 0
-		elif gstate['lastInfoCount'] < 20: # only print out if it's not already been held for a while
-			printf(".", end="")
-			gstate['lastInfoCount'] += 1
-		gstate['lastInfo'] = info
-	
+
 
 def startHooks():
 	"""
@@ -322,10 +354,17 @@ def stopHooks():
 	"""
 	Removes keyboard hooks, stops listening. Pauses the program.
 	"""
-	kb.unhook_all() # should do it, but it doesn't
+	kb.unhook_all()
 
 	if config['printDebug']:
 		printf("\nStopped all hooks/paused the program.")
+
+def softRestartHooks():
+	""" Stops hooks, and resumes them if the program is enabled. """
+	stopHooks()
+	
+	if gstate['enabled']:
+		startHooks()
 
 
 def traySetup(icon):
@@ -354,6 +393,8 @@ def trayRestartButton(icon):
 
 	os.execl(sys.executable, os.path.abspath(__file__), *sys.argv)
 
+def traySoftRestart(icon):
+	softRestartHooks()
 
 def createSystemTray():
 	"""
@@ -366,6 +407,7 @@ def createSystemTray():
 		tray.MenuItem("VI Arrow Keys", lambda: 1, enabled=False), # inactive item with the program's title
 		tray.MenuItem('Enabled', trayEnabledChanged, checked=lambda item: gstate['enabled']),
 		tray.MenuItem('Restart', trayRestartButton),
+		tray.MenuItem('Soft Restart', traySoftRestart),
 		tray.MenuItem('Quit/Exit', lambda: gstate['icon'].stop()), # just calls icon.stop(), steps the whole program
 	)
 
@@ -378,10 +420,6 @@ def run():
 	# Create the system tray icon
 	createSystemTray() # never ends
 
-
-def printf(*args, **kwargs):
-	""" A print function that flushes the buffer for immediate feedback. """
-	print(*args, **kwargs, flush=True)
 
 
 if __name__ == "__main__":
