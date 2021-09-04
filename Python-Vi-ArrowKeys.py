@@ -9,7 +9,44 @@ import py_win_keyboard_layout as kbl
 
 import sys, string, os
 
+# from win32api import GetAsyncKeyState # no idea what this is
+
 dvorakCodes = [-255851511] # obtained from kbl.get_foreground_window_keyboard_layout() while the Dvorak keyboard is active
+
+config = {
+	"printDebug": True,		# deployment: False
+	"enableSysTray": True,		# deployment: True
+	"enableQuickExit": False,	# deployment: False 	# press 'end' key to exit the program (useful for debug only)
+
+	"maps": {					# VI Mappings (defined using qwerty positions)
+		'h': {"action": "left"},
+		'j': {"action": "down"},
+		'k': {"action": "up"},
+		'l': {"action": "right"},
+		#',' if (getCurKBLayout() in dvorakCodes) else 'w': {"action": "ctrl+right", "method": "press+release"}, # special behaviour: do the press and release all at once
+		#'n' if (getCurKBLayout() in dvorakCodes) else 'b': {"action": "ctrl+left", "method": "press+release"},
+	}, # TODO re-enable word jumps
+
+	"remaps": {					# scan codes/nameL to remap to other characters (primarily number pad)
+		82: '0',
+		79: '1',
+		80: '2',
+		81: '3',
+		75: '4',
+		76: '5',
+		77: '6',
+		71: '7',
+		72: '8',
+		73: '9',
+		83: '.',
+		53: '/',
+	},
+
+	# List of keys to listen for and apply the system to (prevents issues when they're typed before or after a getCurrentTriggerKey())
+	"hookKeys": list(string.punctuation) + list(string.ascii_lowercase) + ['space', 'end', 'enter', 'backspace'] + list(string.digits),
+	"listenKeys": ["shift", "right shift", "left shift", "space"] # just listen to the shift keys for use in the main handler (can only be shifts)
+}
+
 def getCurKBLayout():
 	return kbl.get_foreground_window_keyboard_layout()
 
@@ -45,6 +82,10 @@ def convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(keyLetter:str):
 		return keyLetter
 
 
+def getCurrentTriggerKey():
+	return 'e' if (getCurKBLayout() in dvorakCodes) else 'd'
+
+
 gstate = {						# global state of the system
 	"down": set(),				# set of characters currently pressed (set bc there will only ever be a single instance of each)
 	"shiftsDown": set(),		# set of shift keys pressed down (left shift, right shift, shift)
@@ -57,47 +98,13 @@ gstate = {						# global state of the system
 
 	"icon": None,				# system tray icon
 	"enabled": True,			# system tray enabled
-	"triggerKey": 'e' if (getCurKBLayout() in dvorakCodes) else 'd',
-}
-
-config = {
-	"printDebug": False,		# deployment: False
-	"enableSysTray": True,		# deployment: True
-	"enableQuickExit": False,	# deployment: False 	# press 'end' key to exit the program (useful for debug only)
-
-	"maps": {					# VI Mappings (defined using qwerty positions)
-		'h': {"action": "left"},
-		'j': {"action": "down"},
-		'k': {"action": "up"},
-		'l': {"action": "right"},
-		',' if (getCurKBLayout() in dvorakCodes) else 'w': {"action": "ctrl+right", "method": "press+release"}, # special behaviour: do the press and release all at once
-		'n' if (getCurKBLayout() in dvorakCodes) else 'b': {"action": "ctrl+left", "method": "press+release"},
-	},
-
-	"remaps": {					# scan codes/nameL to remap to other characters (primarily number pad)
-		82: '0',
-		79: '1',
-		80: '2',
-		81: '3',
-		75: '4',
-		76: '5',
-		77: '6',
-		71: '7',
-		72: '8',
-		73: '9',
-		83: '.',
-		53: '/',
-	},
-
-	# List of keys to listen for and apply the system to (prevents issues when they're typed before or after a gstate['triggerKey'])
-	"hookKeys": list(string.punctuation) + list(string.ascii_lowercase) + ['space', 'end', 'enter', 'backspace'] + list(string.digits),
-	"listenKeys": ["shift", "right shift", "left shift"] # just listen to the shift keys for use in the main handler (can only be shifts)
+	"lastKBLayoutCode": getCurKBLayout() # last KB layout code, so we can rebind when it changes
 }
 
 
 
 config['specials'] = list(config['maps'].keys()) + ['d'] # list of all special characters to remap
-# Note that this uses the Qwerty names for all the keys (instead of gstate['triggerKey'], for example); conversion is done later on
+# Note that this uses the Qwerty names for all the keys (instead of getCurrentTriggerKey(), for example); conversion is done later on
 
 def listenCallback(event):
 	"""
@@ -184,12 +191,12 @@ def hookCallback(event):
 			* If this is the case, as would be when **typing "cards" very quickly,** (known as the 'cards' bug) send a 'd' before the received event
 		2. Finally, send the received event
 	"""
-	if (gstate['triggerKey'] not in gstate['down']) or (convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(nameL) not in config['specials']):
+	if (getCurrentTriggerKey() not in gstate['down']) or (convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(nameL) not in config['specials']):
 		# if d is not pressed and this isn't for a d
 		if downEvent:
 			# Do 'cards' fix
-			if (gstate['triggerKey'] in gstate['down']) and (not gstate['dSentYet']):
-				kb.press(gstate['triggerKey']) # This should be send, maybe (check back later, if it's an issue)
+			if (getCurrentTriggerKey() in gstate['down']) and (not gstate['dSentYet']):
+				kb.press(getCurrentTriggerKey()) # This should be send, maybe (check back later, if it's an issue)
 				gstate['dSentYet'] = True
 			
 			# Actually send through the character (by character if on the numpad, otherwise by scancode)
@@ -210,11 +217,11 @@ def hookCallback(event):
 	Normally (neglecting fast consecutive presses), the 'd' key is sent on a key up event. 
 	However, it is not sent if either 1) a VI key was pressed since it was pressed down, or 2) it was already sent because of a fast consecutive press
 	"""
-	if (nameL == gstate['triggerKey']):
+	if (nameL == getCurrentTriggerKey()):
 		if downEvent:
 			# alternatively we could reset viTriggeredYet=False here
 			gstate['dSentYet'] = False # reset to not sent yet
-			gstate['wasDUppercase'] = (event.name == gstate['triggerKey'].upper())
+			gstate['wasDUppercase'] = (event.name == getCurrentTriggerKey().upper())
 		else:
 			if (not gstate['viTriggeredYet']) and (not gstate['dSentYet']):
 				# "Discord" bug fix
@@ -224,11 +231,11 @@ def hookCallback(event):
 						kb.send('shift+d')
 					else:
 						kb.press(list(gstate['shiftsDown'])[0])
-						kb.send(gstate['triggerKey'])
+						kb.send(getCurrentTriggerKey())
 					#kb.press('shift')
-					#kb.send(gstate['triggerKey'])
+					#kb.send(getCurrentTriggerKey())
 				else:
-					kb.send(gstate['triggerKey'])
+					kb.send(getCurrentTriggerKey())
 				gstate['dSentYet'] = True
 			gstate['viTriggeredYet'] = False # reset to false
 
@@ -243,9 +250,9 @@ def hookCallback(event):
 		[
 			thisVIKey in [convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(i) for i in gstate['down']]
 			for thisVIKey in config['maps'].keys()
-		]) and (nameL == gstate['triggerKey'] and downEvent):
+		]) and (nameL == getCurrentTriggerKey() and downEvent):
 		# If any of the VI keys are currently pressed down, and 'd' is being PRESSED
-		kb.send(gstate['triggerKey']) # this might only be a .press, actually; doesn't matter though
+		kb.send(getCurrentTriggerKey()) # this might only be a .press, actually; doesn't matter though
 		#printf("\nDid 'world' bug fix.")
 		gstate['dSentYet'] = True
 
@@ -255,7 +262,7 @@ def hookCallback(event):
 	"""
 	If the key is a mappable key, and 'd' is currently held down, send the appropriate arrowkey.
 	"""
-	if (convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(nameL) in config['maps'].keys()) and (gstate['triggerKey'] in gstate['down']):
+	if (convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(nameL) in config['maps'].keys()) and (getCurrentTriggerKey() in gstate['down']):
 		gstate['viTriggeredYet'] = True # VI triggered, no longer type a 'd' on release
 		
 		thisSendSetup = config['maps'][convertDvorakKeyToQwertyKeyIfCurrentlyInDvorak(nameL)] # dict with 'action' as the key(s) to press, and 'method' as 'press+release' or blank for normal
@@ -269,6 +276,14 @@ def hookCallback(event):
 			else:
 				kb.release(thisSendKey)
 		#printf("\nSending: " + thisSendKey)
+
+	# Section 6a: Do reset if keyboard layout changed
+	if nameL in (' ', 'space'): # only do check on space hotkey
+		if gstate['lastKBLayoutCode'] != getCurKBLayout():
+			printf("Keyboard layout just changed, rebinding.")
+			gstate['lastKBLayoutCode'] = getCurKBLayout() # this is likely unnecessary because the program re-runs from scratch
+
+			hardResetProgram() # does a full restart of the program to make it work
 	
 	# Section 7: Print Debug Info
 	"""
@@ -322,7 +337,7 @@ def stopHooks():
 	"""
 	Removes keyboard hooks, stops listening. Pauses the program.
 	"""
-	kb.unhook_all() # should do it, but it doesn't
+	kb.unhook_all() # should do it, but it doesn't (but actually, does appear to do it?)
 
 	if config['printDebug']:
 		printf("\nStopped all hooks/paused the program.")
@@ -345,7 +360,7 @@ def trayEnabledChanged(icon):
 	else:
 		stopHooks()
 
-def trayRestartButton(icon):
+def hardResetProgram(icon=None):
 	"""
 	Gets called when system tray "Restart" is called. 
 	Used because Synergy only allows forwarding of this program's changes if this program is started after Synergy (must be a full start, not just re-Enable).
@@ -354,6 +369,10 @@ def trayRestartButton(icon):
 
 	os.execl(sys.executable, os.path.abspath(__file__), *sys.argv)
 
+def traySoftRestartButton(icon=None):
+	""" Do a soft reset, as requested from the tray. This function doesn't really work. """
+	stopHooks()
+	startHooks()
 
 def createSystemTray():
 	"""
@@ -365,8 +384,9 @@ def createSystemTray():
 	menu = tray.Menu(
 		tray.MenuItem("VI Arrow Keys", lambda: 1, enabled=False), # inactive item with the program's title
 		tray.MenuItem('Enabled', trayEnabledChanged, checked=lambda item: gstate['enabled']),
-		tray.MenuItem('Restart', trayRestartButton),
-		tray.MenuItem('Quit/Exit', lambda: gstate['icon'].stop()), # just calls icon.stop(), steps the whole program
+		tray.MenuItem('Restart (Force)', hardResetProgram),
+		#tray.MenuItem('Restart (Soft)', traySoftRestartButton),
+		tray.MenuItem('Quit/Exit', lambda: gstate['icon'].stop()), # just calls icon.stop(), stops the whole program
 	)
 
 	gstate['icon'] = tray.Icon("VI Arrow Keys", image, "VI Arrow Keys", menu) # originally stored in "icon", stored globally though
@@ -385,6 +405,7 @@ def printf(*args, **kwargs):
 
 
 if __name__ == "__main__":
+	print("VI Arrow Keys Started.")
 	if config['enableSysTray']:
 		run()
 	else:
